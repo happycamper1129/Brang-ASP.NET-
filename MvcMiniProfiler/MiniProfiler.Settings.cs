@@ -48,7 +48,7 @@ namespace MvcMiniProfiler
             public static bool RenderPopupButtonOnRight { get; set; }
 
             /// <summary>
-            /// When <see cref="MiniProfiler.Start"/> is called, if the current request url starts with this property,
+            /// When <see cref="MiniProfiler.Start()"/> is called, if the current request url starts with this property,
             /// no profiler will be instantiated and no results will be displayed.  
             /// Default value is { "/mini-profiler-includes.js", "/mini-profiler-includes.less", "/mini-profiler-results", "/content/", "/scripts/" }.
             /// </summary>
@@ -104,7 +104,7 @@ namespace MvcMiniProfiler
             {
                 if (ShortTermCacheGetter == null || ShortTermCacheSetter == null)
                 {
-                    ShortTermCacheSetter = (prof) => SetProfilerIntoRuntimeCache(CacheKey + prof.Id.ToString(), prof, DateTime.Now.AddMinutes(10));
+                    ShortTermCacheSetter = (prof) => SetProfilerIntoRuntimeCache(CacheKey + prof.Id.ToString(), prof, DateTime.Now.AddMinutes(5));
                     ShortTermCacheGetter = (guid) => { return HttpRuntime.Cache[CacheKey + guid.ToString()] as MiniProfiler; };
                 }
 

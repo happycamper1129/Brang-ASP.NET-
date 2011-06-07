@@ -8,9 +8,6 @@ using MvcMiniProfiler.Helpers;
 
 namespace MvcMiniProfiler.UI
 {
-    /// <summary>
-    /// Understands how to route and respond to MiniProfiler UI urls.
-    /// </summary>
     public class MiniProfilerHandler : IRouteHandler, IHttpHandler
     {
         internal static void RegisterRoutes()
@@ -35,9 +32,6 @@ namespace MvcMiniProfiler.UI
             }
         }
 
-        /// <summary>
-        /// Returns this <see cref="MiniProfilerHandler"/> to handle <paramref name="requestContext"/>.
-        /// </summary>
         public IHttpHandler GetHttpHandler(RequestContext requestContext)
         {
             return this; // elegant? I THINK SO.

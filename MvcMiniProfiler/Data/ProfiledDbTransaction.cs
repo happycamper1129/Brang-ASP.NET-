@@ -2,8 +2,6 @@
 using System.Data.Common;
 using System.Data;
 
-#pragma warning disable 1591 // xml doc comments warnings
-
 namespace MvcMiniProfiler.Data
 {
     public class ProfiledDbTransaction : DbTransaction
@@ -56,5 +54,3 @@ namespace MvcMiniProfiler.Data
         }
     }
 }
-
-#pragma warning restore 1591 // xml doc comments warnings

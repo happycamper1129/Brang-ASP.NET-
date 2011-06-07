@@ -2,8 +2,6 @@
 using System.Data.Common;
 using System.Data;
 
-#pragma warning disable 1591 // xml doc comments warnings
-
 namespace MvcMiniProfiler.Data
 {
 
@@ -20,7 +18,7 @@ namespace MvcMiniProfiler.Data
         {
             _reader = reader;
             _conn = connection;
-
+            
             if (profiler != null)
             {
                 _profiler = profiler;
@@ -197,5 +195,3 @@ namespace MvcMiniProfiler.Data
         }
     }
 }
-
-#pragma warning restore 1591 // xml doc comments warnings

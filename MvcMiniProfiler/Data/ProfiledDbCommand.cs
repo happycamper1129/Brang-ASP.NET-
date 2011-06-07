@@ -5,8 +5,6 @@ using MvcMiniProfiler;
 using System.Reflection;
 using System.Reflection.Emit;
 
-#pragma warning disable 1591 // xml doc comments warnings
-
 namespace MvcMiniProfiler.Data
 {
     public class ProfiledDbCommand : DbCommand, ICloneable
@@ -70,8 +68,6 @@ namespace MvcMiniProfiler.Data
             Link<Type, Action<IDbCommand, bool>>.TryAdd(ref bindByNameCache, commandType, ref action);
             return action;
         }
-
-
         public ProfiledDbCommand(DbCommand cmd, DbConnection conn, MiniProfiler profiler)
         {
             if (cmd == null) throw new ArgumentNullException("cmd");
@@ -85,6 +81,7 @@ namespace MvcMiniProfiler.Data
                 _sqlProfiler = profiler.SqlProfiler;
             }
         }
+
 
         public override string CommandText
         {
@@ -208,8 +205,5 @@ namespace MvcMiniProfiler.Data
             return new ProfiledDbCommand((DbCommand)tail.Clone(), _conn, _profiler);
         }
         object ICloneable.Clone() { return Clone(); }
-
     }
 }
-
-#pragma warning restore 1591 // xml doc comments warnings

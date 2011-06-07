@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 namespace MvcMiniProfiler
 {
     /// <summary>
-    /// An individual profiling step that can contain child steps.
+    /// An individual profiling step
     /// </summary>
     [DataContract]
     public class Timing : IDisposable
@@ -15,43 +15,43 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Unique identifer for this timing; set during construction.
         /// </summary>
-        [DataMember(Order = 1)]
+        [DataMember(Order = 0)]
         public Guid Id { get; private set; }
 
         /// <summary>
         /// Text displayed when this Timing is rendered.
         /// </summary>
-        [DataMember(Order = 2)]
+        [DataMember(Order = 1)]
         public string Name { get; private set; }
 
         /// <summary>
         /// How long this Timing step took in ms; includes any <see cref="Children"/> Timings' durations.
         /// </summary>
-        [DataMember(Order = 3)]
+        [DataMember(Order = 2)]
         public double? DurationMilliseconds { get; private set; }
 
         /// <summary>
         /// The offset from the start of profiling.
         /// </summary>
-        [DataMember(Order = 4)]
+        [DataMember(Order = 3)]
         public double StartMilliseconds { get; private set; }
 
         /// <summary>
         /// All sub-steps that occur within this Timing step. Add new children through <see cref="AddChild"/>
         /// </summary>
-        [DataMember(Order = 5)]
+        [DataMember(Order = 4)]
         public List<Timing> Children { get; private set; }
 
         /// <summary>
         /// Stores arbitrary key/value strings on this Timing step. Add new tuples through <see cref="AddKeyValue"/>.
         /// </summary>
-        [DataMember(Order = 6)]
+        [DataMember(Order = 5)]
         public Dictionary<string, string> KeyValues { get; private set; }
 
         /// <summary>
         /// Any queries that occurred during this Timing step.
         /// </summary>
-        [DataMember(Order = 7)]
+        [DataMember(Order = 6)]
         public List<SqlTiming> SqlTimings { get; set; }
 
         /// <summary>
@@ -108,17 +108,11 @@ namespace MvcMiniProfiler
             get { return Children != null && Children.Count > 0; }
         }
 
-        /// <summary>
-        /// Returns true if this Timing step collected sql execution timings.
-        /// </summary>
         public bool HasSqlTimings
         {
             get { return SqlTimings != null && SqlTimings.Count > 0; }
         }
 
-        /// <summary>
-        /// Returns true when this Timing is the first one created in a MiniProfiler session.
-        /// </summary>
         public bool IsRoot
         {
             get { return Parent == null; }
@@ -144,9 +138,6 @@ namespace MvcMiniProfiler
             }
         }
 
-        /// <summary>
-        /// Creates a new Timing named 'name' in the 'profiler's session, with 'parent' as this Timing's immediate ancestor.
-        /// </summary>
         public Timing(MiniProfiler profiler, Timing parent, string name)
         {
             this.Id = Guid.NewGuid();
@@ -164,17 +155,13 @@ namespace MvcMiniProfiler
             _startTicks = profiler.ElapsedTicks;
             StartMilliseconds = MiniProfiler.GetRoundedMilliseconds(_startTicks);
         }
-        /// <summary>
-        /// Obsolete - used for serialization.
-        /// </summary>
+
         [Obsolete("Used for serialization")]
         public Timing()
         {
         }
 
-        /// <summary>
-        /// Adds arbitrary string 'value' under 'key', allowing custom properties to be stored in this Timing step.
-        /// </summary>
+
         public void AddKeyValue(string key, string value)
         {
             if (KeyValues == null)
@@ -183,9 +170,6 @@ namespace MvcMiniProfiler
             KeyValues[key] = value;
         }
 
-        /// <summary>
-        /// Completes this Timing's duration and sets the MiniProfiler's Head up one level.
-        /// </summary>
         public void Stop()
         {
             if (DurationMilliseconds == null)
