@@ -1,6 +1,8 @@
 syntax: glob
-*/bin/
-*/obj/
+MiniProfiler/bin/
+MiniProfiler/obj/
+SampleWeb/bin/
+SampleWeb/obj/
 *.suo
 *.user
 *.nupkg
