@@ -20,13 +20,33 @@ namespace MvcMiniProfiler.Data
                 typeof(DbConnection).GetProperty("DbProviderFactory", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                 .GetGetMethod(true));
 
+
         /// <summary>
-        /// Returns a new <see cref="ProfiledDbConnection"/> that wraps <paramref name="connection"/>, providing query execution profiling
-        /// when <paramref name="profiler"/> is not null.
+        /// When <see cref="MiniProfiler.Current"/> is not null, returns a new <see cref="ProfiledDbConnection"/> that wraps <paramref name="connection"/>, 
+        /// providing query execution profiling.  If <see cref="MiniProfiler.Current"/> is null, connection is returned unwrapped.
+        /// </summary>
+        /// <param name="connection">Your provider-specific flavor of connection, e.g. SqlConnection, OracleConnection</param>
+        public static DbConnection Get(DbConnection connection)
+        {
+            return Get(connection, MiniProfiler.Current);
+        }
+
+        /// <summary>
+        /// When <paramref name="profiler"/> is not null, returns a new <see cref="ProfiledDbConnection"/> that wraps <paramref name="connection"/>, 
+        /// providing query execution profiling.  If profiler is null, connection is returned unwrapped.
         /// </summary>
         /// <param name="connection">Your provider-specific flavor of connection, e.g. SqlConnection, OracleConnection</param>
         /// <param name="profiler">The currently started <see cref="MiniProfiler"/> or null.</param>
-        public ProfiledDbConnection(DbConnection connection, MiniProfiler profiler)
+        public static DbConnection Get(DbConnection connection, MiniProfiler profiler)
+        {
+            if (profiler == null)
+            {
+                return connection;
+            }
+            return new ProfiledDbConnection(connection, profiler);
+        }
+
+        private ProfiledDbConnection(DbConnection connection, MiniProfiler profiler)
         {
             if (connection == null) throw new ArgumentNullException("connection");
 
