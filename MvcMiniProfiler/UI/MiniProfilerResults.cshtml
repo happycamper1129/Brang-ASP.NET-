@@ -168,7 +168,9 @@
             </tr>
         </thead>
         <tbody>
-        @{ int i = 0, count; Timing parent = null;}
+        @{ int i = 0; Timing parent = null;
+           HashSet<string> unique = new HashSet<string>();
+           }
         @foreach (var s in sqlTimings)
         {
             parent = parentLookup[s];
@@ -176,7 +178,7 @@
                 <td class="info">
                     <div>@parent.Name</div>
                     <div><span class="ms">T+</span>@RenderNumber(s.StartMilliseconds, "ms")</div>
-                    <div>@if (sqlCounts.TryGetValue(s.CommandString, out count) && count > 1){
+                    <div>@if (!unique.Add(s.CommandString)){
                              <span class="duplicates">DUPLICATE</span>
                          }@e(s.ExecuteType)</div>
                     <div>@RenderNumber(s.DurationMilliseconds, "ms")</div>
