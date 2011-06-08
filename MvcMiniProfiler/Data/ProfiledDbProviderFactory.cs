@@ -30,7 +30,7 @@ namespace MvcMiniProfiler.Data
         }
         public override DbConnection CreateConnection()
         {
-            return ProfiledDbConnection.Get(tail.CreateConnection(), profiler);
+            return new ProfiledDbConnection(tail.CreateConnection(), profiler);
         }
         public override DbParameter CreateParameter()
         {
