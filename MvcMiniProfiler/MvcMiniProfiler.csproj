@@ -38,7 +38,6 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Data.Linq" />
@@ -46,7 +45,6 @@
     <Reference Include="System.Transactions" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
-    <Reference Include="System.Web.Razor, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -62,8 +60,8 @@
     <Compile Include="Data\ProfiledDbProviderFactory.cs" />
     <Compile Include="Data\ProfiledDbProviderServices.cs" />
     <Compile Include="Data\ProfiledDbTransaction.cs" />
-    <Compile Include="Helpers\RazorCompiler.cs" />
     <Compile Include="Helpers\StackTraceSnippet.cs" />
+    <Compile Include="Helpers\HaackFormatter.cs" />
     <Compile Include="MiniProfiler.Settings.cs">
       <DependentUpon>MiniProfiler.cs</DependentUpon>
     </Compile>
@@ -73,18 +71,22 @@
     <Compile Include="SqlTiming.cs" />
     <Compile Include="Timing.cs" />
     <Compile Include="UI\MiniProfilerHandler.cs" />
-    <Compile Include="UI\MiniProfilerResults.Model.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <EmbeddedResource Include="UI\Includes.less" />
-    <EmbeddedResource Include="UI\MiniProfilerResults.cshtml" />
+    <EmbeddedResource Include="UI\includes.less" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="UI\Includes.js" />
+    <EmbeddedResource Include="UI\includes.js" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="web.config" />
+    <EmbeddedResource Include="UI\includes.tmpl" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="UI\yepnope.1.0.1.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="UI\jquery.1.6.1.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

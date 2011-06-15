@@ -5,6 +5,7 @@ using System.Web;
 using System.Web.Routing;
 
 using MvcMiniProfiler.Helpers;
+using System.Text;
 
 namespace MvcMiniProfiler.UI
 {
@@ -16,26 +17,59 @@ namespace MvcMiniProfiler.UI
         internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false)
         {
             const string format =
-@"<link rel=""stylesheet/less"" type=""text/css"" href=""{0}mini-profiler-includes.less?v={1}"">
-<script type=""text/javascript"" src=""{0}mini-profiler-includes.js?v={1}""></script>
-<script type=""text/javascript""> jQuery(function() {{ MiniProfiler.init({{ id:'{2}', path:'{0}', renderDirection:'{3}', showTrivial: {4}, showChildrenTime: {5} }}); }} ); </script>";
+@"<link rel=""stylesheet/less"" type=""text/css"" href=""{path}mini-profiler-includes.less?v={version}"">
+<script type=""text/javascript"" src=""{path}mini-profiler-yepnope.1.0.1.js""></script>
+<script type=""text/javascript"">
+    yepnope([
+        {{ test: window.jQuery, nope: '{path}mini-profiler-jquery.1.6.1.js' }}, 
+        {{ load: '{path}mini-profiler-includes.js?v={version}',
+           complete: function() {{
+               jQuery(function() {{
+                   MiniProfiler.init({{
+                       id: '{id}',
+                       path: '{path}',
+                       version: '{version}',
+                       renderPosition: '{position}',
+                       showTrivial: {showTrivial},
+                       showChildrenTime: {showChildren}
+                   }});
+               }});
+         }}
+    }}]);
+</script>";
+            var result = "";
 
-            var pos = position ?? (MiniProfiler.Settings.RenderPopupButtonOnRight ? RenderPosition.Right : RenderPosition.Left);
-            
-            var result = profiler == null ? "" : string.Format(format,
-                                                               EnsureEndingSlash(HttpContext.Current.Request.ApplicationPath),
-                                                               MiniProfiler.Settings.Version,
-                                                               profiler.Id,
-                                                               pos.ToString().ToLower(),
-                                                               showTrivial ? "true" : "false",
-                                                               showTimeWithChildren ? "true" : "false");
+            if (profiler != null)
+            {
+                // TODO: remove after a few versions
+                var pos = position ?? (MiniProfiler.Settings.RenderPopupButtonOnRight ? RenderPosition.Right : RenderPosition.Left);
+
+                result = format.Format(new
+                {
+                    path = EnsureEndingSlash(HttpContext.Current.Request.ApplicationPath),
+                    version = MiniProfiler.Settings.Version,
+                    id = profiler.Id,
+                    position = pos.ToString().ToLower(),
+                    showTrivial = showTrivial ? "true" : "false",
+                    showChildren = showTimeWithChildren ? "true" : "false"
+                });
+            }
 
             return new HtmlString(result);
         }
 
         internal static void RegisterRoutes()
         {
-            var urls = new[] { "mini-profiler-includes.js", "mini-profiler-includes.less", "mini-profiler-results" };
+            // TODO: make a Setting to allow customization of these urls, e.g. RoutePrefix, defaults to "mini-profiler-"
+            var urls = new[] 
+            { 
+                "mini-profiler-yepnope.1.0.1.js", 
+                "mini-profiler-jquery.1.6.1.js", 
+                "mini-profiler-includes.js", 
+                "mini-profiler-includes.less", 
+                "mini-profiler-includes.tmpl", 
+                "mini-profiler-results" 
+            };
             var routes = RouteTable.Routes;
             var handler = new MiniProfilerHandler();
 
@@ -57,7 +91,7 @@ namespace MvcMiniProfiler.UI
 
         internal static string EnsureEndingSlash(string input)
         {
-            if (string.IsNullOrEmpty(input)) return "/";
+            if (string.IsNullOrWhiteSpace(input)) return "/";
             if (!input.EndsWith("/")) input += "/";
             return input;
         }
@@ -84,11 +118,14 @@ namespace MvcMiniProfiler.UI
         public void ProcessRequest(HttpContext context)
         {
             string output;
+            string path = context.Request.AppRelativeCurrentExecutionFilePath;
 
-            switch (Path.GetFileNameWithoutExtension(context.Request.AppRelativeCurrentExecutionFilePath))
+            switch (Path.GetFileNameWithoutExtension(path))
             {
                 case "mini-profiler-includes":
-                    output = Includes(context);
+                case "mini-profiler-jquery.1.6.1":
+                case "mini-profiler-yepnope.1.0.1":
+                    output = Includes(context, path);
                     break;
 
                 case "mini-profiler-results":
@@ -106,21 +143,20 @@ namespace MvcMiniProfiler.UI
         /// <summary>
         /// Handles rendering our .js and .less static content files.
         /// </summary>
-        private static string Includes(HttpContext context)
+        private static string Includes(HttpContext context, string path)
         {
-            var extension = Path.GetExtension(context.Request.Url.AbsolutePath);
-            if (string.IsNullOrWhiteSpace(extension)) return NotFound(context);
-
             var response = context.Response;
-            var filename = "Includes" + extension;
 
-            switch (extension)
+            switch (Path.GetExtension(path))
             {
                 case ".js":
                     response.ContentType = "application/javascript";
                     break;
                 case ".less":
                     response.ContentType = "text/plain";
+                    break;
+                case ".tmpl":
+                    response.ContentType = "text/x-jquery-tmpl";
                     break;
                 default:
                     return NotFound(context);
@@ -131,7 +167,8 @@ namespace MvcMiniProfiler.UI
             cache.SetExpires(DateTime.Now.AddDays(7));
             cache.SetValidUntilExpires(true);
 
-            return GetResource(filename);
+            var embeddedFile = Path.GetFileName(path).Replace("mini-profiler-", "");
+            return GetResource(embeddedFile);
         }
 
         /// <summary>
@@ -157,19 +194,44 @@ namespace MvcMiniProfiler.UI
             if (profiler == null)
                 return isPopup ? NotFound(context) : NotFound(context, "text/html", "No MiniProfiler results found with Id=" + id.ToString());
 
-            // the first time we hit this route as a full results page, the prof won't be in long term cache, so put it there for sharing
-            // each subsequent time the full page is hit, just save again, so we act as a sliding expiration
-            if (!isPopup)
+            if (isPopup)
+            {
+                return ResultsJson(context, profiler);
+            }
+            else
+            {
+                // the first time we hit this route as a full results page, the prof won't be in long term cache, so put it there for sharing
+                // each subsequent time the full page is hit, just save again, so we act as a sliding expiration
                 MiniProfiler.Settings.LongTermCacheSetter(profiler);
+                return ResultsFullPage(context, profiler);
+            }
+        }
 
-            var html = GetResource("MiniProfilerResults.cshtml");
-            var model = new MiniProfilerResultsModel { MiniProfiler = profiler, IsPopup = isPopup, AppRoot = EnsureEndingSlash(context.Request.ApplicationPath) };
+        private static string ResultsJson(HttpContext context, MiniProfiler profiler)
+        {
+            context.Response.ContentType = "application/json";
+            return MiniProfiler.ToJson(profiler);
+        }
 
-            return RazorCompiler.Render(html, model);
+        private static string ResultsFullPage(HttpContext context, MiniProfiler profiler)
+        {
+            context.Response.ContentType = "text/html";
+            return new StringBuilder()
+                .AppendLine("<html><head>")
+                .AppendFormat("<title>{0} ({1} ms) - MvcMiniProfiler Results</title>", profiler.Name, profiler.DurationMilliseconds)
+                .AppendLine()
+                .AppendLine("<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js'></script>")
+                .Append("<script type='text/javascript'> var profiler = ")
+                .Append(MiniProfiler.ToJson(profiler))
+                .AppendLine(";</script>")
+                .Append(RenderIncludes(profiler)) // figure out how to better pass display options
+                .AppendLine("</head><body><div class='profiler-result-full'></div></body></html>")
+                .ToString();
         }
 
         private static string GetResource(string filename)
         {
+            filename = filename.ToLower();
             string result;
 
             if (!_ResourceCache.TryGetValue(filename, out result))

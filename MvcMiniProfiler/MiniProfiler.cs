@@ -101,6 +101,11 @@ namespace MvcMiniProfiler
         private readonly Stopwatch _watch;
 
         /// <summary>
+        /// 
+        /// </summary>
+        private Dictionary<string, int> _sqlCounts;
+
+        /// <summary>
         /// Milliseconds, to one decimal place, that this MiniProfiler ran.
         /// </summary>
         public double DurationMilliseconds
@@ -119,17 +124,51 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Returns true when we have profiled queries.
         /// </summary>
-        public bool HasSqlTimings
+        public bool HasSqlTimings { get; set; }
+
+        /// <summary>
+        /// Returns true when any child Timings have duplicate queries.
+        /// </summary>
+        public bool HasDuplicateSqlTimings { get; set; }
+
+        /// <summary>
+        /// Returns true when <see cref="Root"/> or any of its <see cref="Timing.Children"/> are <see cref="Timing.IsTrivial"/>.
+        /// </summary>
+        public bool HasTrivialTimings
         {
             get
             {
                 foreach (var t in GetTimingHierarchy())
                 {
-                    if (t.HasSqlTimings)
+                    if (t.IsTrivial)
                         return true;
                 }
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Returns true when all child <see cref="Timing"/>s are <see cref="Timing.IsTrivial"/>.
+        /// </summary>
+        public bool HasAllTrivialTimings
+        {
+            get
+            {
+                foreach (var t in GetTimingHierarchy())
+                {
+                    if (!t.IsTrivial)
+                        return false;
+                }
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Any Timing step with a duration less than or equal to this will be hidden by default in the UI; defaults to 2.0 ms.
+        /// </summary>
+        public double TrivialDurationThresholdMilliseconds
+        {
+            get { return Settings.TrivialDurationThresholdMilliseconds; }
         }
 
         /// <summary>
@@ -148,13 +187,17 @@ namespace MvcMiniProfiler
         /// </summary>
         public MiniProfiler(string url, ProfileLevel level = ProfileLevel.Info)
         {
-            Started = DateTime.UtcNow;
-            _watch = Stopwatch.StartNew();
-            Root = new Timing(this, parent: null, name: url);
             Id = Guid.NewGuid();
             Level = level;
             SqlProfiler = new SqlProfiler(this);
             MachineName = Environment.MachineName;
+            _sqlCounts = new Dictionary<string, int>();
+
+            Started = DateTime.UtcNow;
+
+            // stopwatch must start before any child Timings are instantiated
+            _watch = Stopwatch.StartNew();
+            Root = new Timing(this, parent: null, name: url);
         }
 
         /// <summary>
@@ -174,7 +217,6 @@ namespace MvcMiniProfiler
         internal IDisposable StepImpl(string name, ProfileLevel level = ProfileLevel.Info)
         {
             if (level > this.Level) return null;
-
             return new Timing(this, Head, name);
         }
 
@@ -196,6 +238,14 @@ namespace MvcMiniProfiler
 
         internal void AddSqlTiming(SqlTiming stats)
         {
+            int count;
+
+            stats.IsDuplicate = _sqlCounts.TryGetValue(stats.CommandString, out count);
+            _sqlCounts[stats.CommandString] = count + 1;
+
+            HasSqlTimings = true;
+            if (stats.IsDuplicate) HasDuplicateSqlTimings = true;
+
             Head.AddSqlTiming(stats);
         }
 
@@ -343,6 +393,17 @@ namespace MvcMiniProfiler
         }
 
         /// <summary>
+        /// Returns an <see cref="IDisposable"/> that will time the code between its creation and disposal. Use this method when you
+        /// do not wish to include the MvcMiniProfiler namespace for the <see cref="MiniProfilerExtensions.Step"/> extension method.
+        /// </summary>
+        /// <param name="name">A descriptive name for the code that is encapsulated by the resulting IDisposable's lifetime.</param>
+        /// <param name="level">This step's visibility level; allows filtering when <see cref="MiniProfiler.Start"/> is called.</param>
+        public static IDisposable StepStatic(string name, ProfileLevel level = ProfileLevel.Info)
+        {
+            return MiniProfilerExtensions.Step(Current, name, level);
+        }
+
+        /// <summary>
         /// Returns the css and javascript includes needed to display the MiniProfiler results UI.
         /// </summary>
         /// <param name="position">Which side of the page the profiler popup button should be displayed on (defaults to left)</param>
@@ -377,11 +438,17 @@ namespace MvcMiniProfiler
 
         private const string CacheKey = ":mini-profiler:";
 
+        /// <summary>
+        /// Renders the current <see cref="MiniProfiler"/> to json.
+        /// </summary>
         public static string ToJson()
         {
             return ToJson(MiniProfiler.Current);
         }
 
+        /// <summary>
+        /// Renders the parameter <see cref="MiniProfiler"/> to json.
+        /// </summary>
         public static string ToJson(MiniProfiler profiler)
         {
             if (profiler == null) return null;
@@ -390,6 +457,9 @@ namespace MvcMiniProfiler
             return result;
         }
 
+        /// <summary>
+        /// Deserializes the json string parameter to a <see cref="MiniProfiler"/>.
+        /// </summary>
         public static MiniProfiler FromJson(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
