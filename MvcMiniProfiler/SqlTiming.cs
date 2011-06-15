@@ -4,51 +4,52 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
 using MvcMiniProfiler.Data;
-using System.Text.RegularExpressions;
+using System.Runtime.Serialization;
 
 namespace MvcMiniProfiler
 {
     /// <summary>
     /// Profiles a single sql execution.
     /// </summary>
+    [DataContract]
     public class SqlTiming
     {
-
         /// <summary>
         /// Category of sql statement executed.
         /// </summary>
+        [DataMember(Order = 1)]
         public ExecuteType ExecuteType { get; set; }
 
         /// <summary>
         /// The sql that was executed.
         /// </summary>
+        [DataMember(Order = 2)]
         public string CommandString { get; set; }
 
         /// <summary>
         /// Roughly where in the calling code that this sql was executed.
         /// </summary>
+        [DataMember(Order = 3)]
         public string StackTraceSnippet { get; set; }
 
         /// <summary>
         /// Offset from main MiniProfiler start that this sql began.
         /// </summary>
+        [DataMember(Order = 4)]
         public double StartMilliseconds { get; set; }
 
         /// <summary>
         /// How long this sql statement took to execute.
         /// </summary>
+        [DataMember(Order = 5)]
         public double DurationMilliseconds { get; set; }
 
         /// <summary>
         /// When executing readers, how long it took to come back initially from the database, 
         /// before all records are fetched and reader is closed.
         /// </summary>
+        [DataMember(Order = 6)]
         public double FirstFetchDurationMilliseconds { get; set; }
-
-        /// <summary>
-        /// True when other identical sql statements have been executed during this MiniProfiler session.
-        /// </summary>
-        public bool IsDuplicate { get; set; }
 
         private long _startTicks;
         private MiniProfiler _profiler;
@@ -58,7 +59,7 @@ namespace MvcMiniProfiler
         /// </summary>
         public SqlTiming(DbCommand command, ExecuteType type, MiniProfiler profiler)
         {
-            CommandString = AddSpacesToParameters(command.CommandText);
+            CommandString = command.CommandText;
             ExecuteType = type;
             StackTraceSnippet = Helpers.StackTraceSnippet.Get();
 
@@ -103,14 +104,6 @@ namespace MvcMiniProfiler
         private double GetDurationMilliseconds()
         {
             return MiniProfiler.GetRoundedMilliseconds(_profiler.ElapsedTicks - _startTicks);
-        }
-
-        /// <summary>
-        /// To help with display, put some space around sammiched commas
-        /// </summary>
-        private string AddSpacesToParameters(string commandString)
-        {
-            return Regex.Replace(commandString, @",([^\s])", ", $1");
         }
 
     }

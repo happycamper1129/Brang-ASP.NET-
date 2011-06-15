@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using System.Runtime.Serialization;
 using System.Web.Script.Serialization;
 
 namespace MvcMiniProfiler
@@ -9,41 +10,49 @@ namespace MvcMiniProfiler
     /// <summary>
     /// An individual profiling step that can contain child steps.
     /// </summary>
+    [DataContract]
     public class Timing : IDisposable
     {
         /// <summary>
         /// Unique identifer for this timing; set during construction.
         /// </summary>
+        [DataMember(Order = 1)]
         public Guid Id { get; set; }
 
         /// <summary>
         /// Text displayed when this Timing is rendered.
         /// </summary>
+        [DataMember(Order = 2)]
         public string Name { get; set; }
 
         /// <summary>
         /// How long this Timing step took in ms; includes any <see cref="Children"/> Timings' durations.
         /// </summary>
+        [DataMember(Order = 3)]
         public double? DurationMilliseconds { get; set; }
 
         /// <summary>
         /// The offset from the start of profiling.
         /// </summary>
+        [DataMember(Order = 4)]
         public double StartMilliseconds { get; set; }
 
         /// <summary>
         /// All sub-steps that occur within this Timing step. Add new children through <see cref="AddChild"/>
         /// </summary>
+        [DataMember(Order = 5)]
         public List<Timing> Children { get; set; }
 
         /// <summary>
         /// Stores arbitrary key/value strings on this Timing step. Add new tuples through <see cref="AddKeyValue"/>.
         /// </summary>
+        [DataMember(Order = 6)]
         public Dictionary<string, string> KeyValues { get; set; }
 
         /// <summary>
         /// Any queries that occurred during this Timing step.
         /// </summary>
+        [DataMember(Order = 7)]
         public List<SqlTiming> SqlTimings { get; set; }
 
         /// <summary>
@@ -72,14 +81,6 @@ namespace MvcMiniProfiler
 
                 return Math.Round(result, 1);
             }
-        }
-
-        /// <summary>
-        /// Gets the aggregate ellapsed milliseconds of all SqlTimings executed in this Timing, excluding Children Timings.
-        /// </summary>
-        public double SqlTimingsDurationMilliseconds
-        {
-            get { return HasSqlTimings ? Math.Round(SqlTimings.Sum(s => s.DurationMilliseconds), 1) : 0; }
         }
 
         /// <summary>
@@ -118,14 +119,6 @@ namespace MvcMiniProfiler
         }
 
         /// <summary>
-        /// Returns true if any <see cref="SqlTiming"/>s executed in this step are detected as duplicate statements.
-        /// </summary>
-        public bool HasDuplicateSqlTimings
-        {
-            get { return HasSqlTimings && SqlTimings.Any(s => s.IsDuplicate); }
-        }
-
-        /// <summary>
         /// Returns true when this Timing is the first one created in a MiniProfiler session.
         /// </summary>
         public bool IsRoot
@@ -151,30 +144,6 @@ namespace MvcMiniProfiler
 
                 return result;
             }
-        }
-
-        /// <summary>
-        /// How many sql data readers were executed in this Timing step.
-        /// </summary>
-        public int ExecutedReaders
-        {
-            get { return ExecutedCount(ExecuteType.Reader); }
-        }
-
-        /// <summary>
-        /// How many sql scalar queries were executed in this Timing step.
-        /// </summary>
-        public int ExecutedScalars
-        {
-            get { return ExecutedCount(ExecuteType.Scalar); }
-        }
-
-        /// <summary>
-        /// How many sql non-query statements were executed in this Timing step.
-        /// </summary>
-        public int ExecutedNonQueries
-        {
-            get { return ExecutedCount(ExecuteType.NonQuery); }
         }
 
         /// <summary>
@@ -247,11 +216,6 @@ namespace MvcMiniProfiler
                 SqlTimings = new List<SqlTiming>();
 
             SqlTimings.Add(stat);
-        }
-
-        private int ExecutedCount(ExecuteType type)
-        {
-            return HasSqlTimings ? SqlTimings.Count(s => s.ExecuteType == type) : 0;
         }
     }
 }
