@@ -80,7 +80,7 @@ namespace MvcMiniProfiler
 
                             for (int i = children.Count - 1; i >= 0; i--)
                             {
-                                children[i].ParentTiming = timing;
+                                children[i].Parent = timing;
                                 timings.Push(children[i]); // FLORIDA!  TODO: refactor this and other stack creation methods into one 
                             }
                         }
@@ -108,7 +108,7 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Milliseconds, to one decimal place, that this MiniProfiler ran.
         /// </summary>
-        public decimal DurationMilliseconds
+        public double DurationMilliseconds
         {
             get { return _root.DurationMilliseconds ?? GetRoundedMilliseconds(ElapsedTicks); }
         }
@@ -116,7 +116,7 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Milliseconds, to one decimal place, that this MiniProfiler was executing sql.
         /// </summary>
-        public decimal DurationMillisecondsInSql
+        public double DurationMillisecondsInSql
         {
             get { return GetTimingHierarchy().Sum(t => t.HasSqlTimings ? t.SqlTimings.Sum(s => s.DurationMilliseconds) : 0); }
         }
@@ -166,7 +166,7 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Any Timing step with a duration less than or equal to this will be hidden by default in the UI; defaults to 2.0 ms.
         /// </summary>
-        public decimal TrivialDurationThresholdMilliseconds
+        public double TrivialDurationThresholdMilliseconds
         {
             get { return Settings.TrivialDurationThresholdMilliseconds; }
         }
@@ -283,10 +283,10 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Returns milliseconds based on Stopwatch's Frequency.
         /// </summary>
-        internal static decimal GetRoundedMilliseconds(long stopwatchElapsedTicks)
+        internal static double GetRoundedMilliseconds(long stopwatchElapsedTicks)
         {
             long z = 10000 * stopwatchElapsedTicks;
-            decimal msTimesTen = (int)(z / Stopwatch.Frequency);
+            double msTimesTen = (int)(z / Stopwatch.Frequency);
             return msTimesTen / 10;
         }
 
@@ -346,8 +346,8 @@ namespace MvcMiniProfiler
             var response = context.Response;
 
             // because we fetch profiler results after the page loads, we have to put them somewhere in the meantime
-            Settings.EnsureStorageStrategies();
-            Settings.ShortTermStorage.SaveMiniProfiler(current.Id, current);
+            Settings.EnsureCacheMethods();
+            Settings.ShortTermCacheSetter(current);
 
             try
             {
@@ -472,7 +472,7 @@ namespace MvcMiniProfiler
     /// <summary>
     /// Categorizes individual <see cref="Timing"/> steps to allow filtering.
     /// </summary>
-    public enum ProfileLevel : byte
+    public enum ProfileLevel
     {
         /// <summary>
         /// Default level given to Timings.

@@ -8,7 +8,7 @@ namespace MvcMiniProfiler
     /// <summary>
     /// Categories of sql statements.
     /// </summary>
-    public enum ExecuteType : byte
+    public enum ExecuteType
     {
         /// <summary>
         /// Unknown
