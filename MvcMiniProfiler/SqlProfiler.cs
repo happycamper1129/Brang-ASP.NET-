@@ -8,7 +8,7 @@ namespace MvcMiniProfiler
     /// <summary>
     /// Categories of sql statements.
     /// </summary>
-    public enum ExecuteType
+    public enum ExecuteType : byte
     {
         /// <summary>
         /// Unknown
@@ -32,7 +32,7 @@ namespace MvcMiniProfiler
     }
 
     // TODO: refactor this out into MiniProfiler
-    internal class SqlProfiler
+    public class SqlProfiler
     {
         Dictionary<Tuple<object, ExecuteType>, SqlTiming> _inProgress = new Dictionary<Tuple<object, ExecuteType>, SqlTiming>();
         Dictionary<DbDataReader, SqlTiming> _inProgressReaders = new Dictionary<DbDataReader, SqlTiming>();

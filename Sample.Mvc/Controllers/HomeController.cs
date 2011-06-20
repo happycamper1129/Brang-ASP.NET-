@@ -51,7 +51,7 @@ namespace SampleWeb.Controllers
             }
 
             using (profiler.Step("FetchRouteHits"))
-            using (var conn = GetOpenConnection(profiler))
+            using (var conn = GetConnection(profiler))
             {
                 var result = conn.Query<RouteHit>("select RouteName, HitCount from RouteHits order by RouteName");
                 return Json(result, JsonRequestBehavior.AllowGet);
@@ -61,7 +61,7 @@ namespace SampleWeb.Controllers
         public ActionResult MassiveNesting()
         {
             var i = 0;
-            using (var conn = GetOpenConnection())
+            using (var conn = GetConnection())
             {
                 RecursiveMethod(ref i, conn, MiniProfiler.Current);
             }
@@ -79,7 +79,7 @@ namespace SampleWeb.Controllers
 
         public ActionResult Duplicated()
         {
-            using (var conn = GetOpenConnection())
+            using (var conn = GetConnection())
             {
                 long total = 0;
                 for (int i = 0; i < 20; i++)
@@ -99,7 +99,8 @@ namespace SampleWeb.Controllers
             using (profiler.Step("Nested call " + i))
             {
                 // run some meaningless queries to illustrate formatting
-                conn.Query("select * from RouteHits");
+                conn.Query("select * from MiniProfilers where Name like @name or DurationMilliseconds >= @duration or HasSqlTimings = @hasSqlTimings",
+                    new { name = "Home/Index", duration = 100.5, hasSqlTimings = true });
 
                 conn.Query(@"select RouteName, HitCount from RouteHits where HitCount < 100000000 or HitCount > 0 order by HitCount, RouteName -- this should hopefully wrap");
 
@@ -162,7 +163,7 @@ from   (select RouteName,
         where  HitCount > 100)
 order  by RouteName");
 
-                using (profiler.Step("Incrementing a variable named i")) // need a long title to test max-width
+                using (profiler.Step("Incrementing a reference parameter named i")) // need a long title to test max-width
                 {
                     i++;
                 }

@@ -25,7 +25,7 @@ namespace MvcMiniProfiler
 
                 foreach (var pair in props)
                 {
-                    pair.PropertyInfo.SetValue(null, pair.DefaultValue.Value, null);
+                    pair.PropertyInfo.SetValue(null, Convert.ChangeType(pair.DefaultValue.Value, pair.PropertyInfo.PropertyType), null);
                 }
 
                 Version = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion;
@@ -41,7 +41,7 @@ namespace MvcMiniProfiler
             /// Any Timing step with a duration less than or equal to this will be hidden by default in the UI; defaults to 2.0 ms.
             /// </summary>
             [DefaultValue(2.0)]
-            public static double TrivialDurationThresholdMilliseconds { get; set; }
+            public static decimal TrivialDurationThresholdMilliseconds { get; set; }
 
             /// <summary>
             /// Dictates on which side of the page the profiler popup button is displayed; defaults to false (i.e. renders on left side).
@@ -57,44 +57,29 @@ namespace MvcMiniProfiler
             [DefaultValue(new string[] { "/mini-profiler-", "/content/", "/scripts/" })]
             public static string[] IgnoredRootPaths { get; set; }
 
-            /// <summary>
-            /// A method that will return a MiniProfiler when given a Guid.  Meant for caching individual page profilings for a 
-            /// very limited time.
-            /// </summary>
-            /// <remarks>
-            /// By default, MiniProfilers will be cached for 5 minutes in the HttpRuntime.Cache.  This can be extended when the cache is shared
-            /// from its top link.
-            /// </remarks>
-            public static Func<Guid, MiniProfiler> ShortTermCacheGetter { get; set; }
 
             /// <summary>
-            /// A method that will save a MiniProfiler into a short-duration cache, so results can fetched down to the client after page load.
-            /// It is important that you cache the MiniProfiler under its Id, a Guid - this Id will be passed to the ShortTermCacheGetter.
+            /// Understands how to save and load MiniProfilers for a very limited time. Used for caching between when
+            /// a profiling session ends and results can be fetched to the client.
             /// </summary>
             /// <remarks>
-            /// By default, MiniProfilers will be cached for 5 minutes in the HttpRuntime.Cache.
+            /// The normal profiling session life-cycle is as follows:
+            /// 1) request begins
+            /// 2) profiler is started
+            /// 3) normal page/controller/request execution
+            /// 4) profiler is stopped
+            /// 5) profiler is cached with <see cref="ShortTermStorage"/>'s implementation of <see cref="Storage.IStorage.SaveMiniProfiler"/>
+            /// 6) request ends
+            /// 7) page is displayed and profiling results are ajax-fetched down, pulling cached results from 
+            ///    <see cref="ShortTermStorage"/>'s implementation of <see cref="Storage.IStorage.LoadMiniProfiler"/>
             /// </remarks>
-            public static Action<MiniProfiler> ShortTermCacheSetter { get; set; }
+            public static Storage.IStorage ShortTermStorage { get; set; }
 
             /// <summary>
-            /// A method that will return a MiniProfiler when given a Guid.  Meant for caching profilings for an extended period of time, so
-            /// they may be shared with others.
+            /// Understands how to save and load MiniProfilers for an extended (even indefinite) time, allowing results to be
+            /// shared with other developers or even tracked over time.
             /// </summary>
-            /// <remarks>
-            /// This is used by the full page results view, which is linked in the popup's header.
-            /// </remarks>
-            public static Func<Guid, MiniProfiler> LongTermCacheGetter { get; set; }
-
-            /// <summary>
-            /// A method that will save a MiniProfiler, identified by its Guid Id, into long-term storage.  Allows results to be shared with others.
-            /// It is important that you cache the MiniProfiler under its Id, a Guid - this Id will be passed to the LongTermCacheGetter.
-            /// </summary>
-            /// <remarks>
-            /// This is activated EVERY TIME the top left header link is clicked in the popup UI and the full page results 
-            /// view is displayed.  When overriding the default, your code will need to handle setting the same profiler 
-            /// back into your chosen storage medium (e.g. no-op when it already exists).
-            /// </remarks>
-            public static Action<MiniProfiler> LongTermCacheSetter { get; set; }
+            public static Storage.IStorage LongTermStorage { get; set; }
 
             /// <summary>
             /// Assembly version of this dank MiniProfiler.
@@ -102,23 +87,19 @@ namespace MvcMiniProfiler
             public static string Version { get; private set; }
 
             /// <summary>
-            /// When setters are null, creates default getters and setters that operate on the HttpRuntime.Cache.
+            /// Ensures that <see cref="ShortTermStorage"/> and <see cref="LongTermStorage"/> objects are initialized. Null values will
+            /// be initialized to use the default <see cref="Storage.HttpRuntimeCacheStorage"/> strategy.
             /// </summary>
-            /// <remarks>
-            /// Our MiniProfiler must have these to run.
-            /// </remarks>
-            internal static void EnsureCacheMethods()
+            internal static void EnsureStorageStrategies()
             {
-                if (ShortTermCacheGetter == null || ShortTermCacheSetter == null)
+                if (ShortTermStorage == null)
                 {
-                    ShortTermCacheSetter = (prof) => SetProfilerIntoRuntimeCache(CacheKey + prof.Id.ToString(), prof, DateTime.Now.AddMinutes(10));
-                    ShortTermCacheGetter = (guid) => { return HttpRuntime.Cache[CacheKey + guid.ToString()] as MiniProfiler; };
+                    ShortTermStorage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromMinutes(20));
                 }
 
-                if (LongTermCacheGetter == null || LongTermCacheSetter == null)
+                if (LongTermStorage == null)
                 {
-                    LongTermCacheSetter = (prof) => SetProfilerIntoRuntimeCache(CacheKey + "longterm:" + prof.Id.ToString(), prof, DateTime.Now.AddDays(1));
-                    LongTermCacheGetter = (guid) => { return HttpRuntime.Cache[CacheKey + "longterm:" + guid.ToString()] as MiniProfiler; };
+                    LongTermStorage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromDays(1));
                 }
             }
 
