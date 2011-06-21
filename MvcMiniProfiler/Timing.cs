@@ -29,13 +29,13 @@ namespace MvcMiniProfiler
         /// How long this Timing step took in ms; includes any <see cref="Children"/> Timings' durations.
         /// </summary>
         [DataMember(Order = 3)]
-        public decimal? DurationMilliseconds { get; set; }
+        public double? DurationMilliseconds { get; set; }
 
         /// <summary>
         /// The offset from the start of profiling.
         /// </summary>
         [DataMember(Order = 4)]
-        public decimal StartMilliseconds { get; set; }
+        public double StartMilliseconds { get; set; }
 
         /// <summary>
         /// All sub-steps that occur within this Timing step. Add new children through <see cref="AddChild"/>
@@ -56,36 +56,20 @@ namespace MvcMiniProfiler
         public List<SqlTiming> SqlTimings { get; set; }
 
         /// <summary>
-        /// Needed for database deserialization.
-        /// </summary>
-        public Guid? ParentTimingId { get; set; }
-
-        private Timing _parentTiming;
-        /// <summary>
         /// Which Timing this Timing is under - the duration that this step takes will be added to its parent's duration.
         /// </summary>
         /// <remarks>This will be null for the root (initial) Timing.</remarks>
         [ScriptIgnore]
-        public Timing ParentTiming
-        {
-            get { return _parentTiming; }
-            set
-            {
-                _parentTiming = value;
-
-                if (value != null && ParentTimingId != value.Id)
-                    ParentTimingId = value.Id;
-            }
-        }
+        public Timing Parent { get; internal set; }
 
         /// <summary>
         /// Gets the ellapsed milliseconds in this step without any children's durations.
         /// </summary>
-        public decimal DurationWithoutChildrenMilliseconds
+        public double DurationWithoutChildrenMilliseconds
         {
             get
             {
-                var result = DurationMilliseconds.GetValueOrDefault();
+                double result = DurationMilliseconds.GetValueOrDefault();
 
                 if (HasChildren)
                 {
@@ -102,7 +86,7 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Gets the aggregate ellapsed milliseconds of all SqlTimings executed in this Timing, excluding Children Timings.
         /// </summary>
-        public decimal SqlTimingsDurationMilliseconds
+        public double SqlTimingsDurationMilliseconds
         {
             get { return HasSqlTimings ? Math.Round(SqlTimings.Sum(s => s.DurationMilliseconds), 1) : 0; }
         }
@@ -119,7 +103,7 @@ namespace MvcMiniProfiler
         /// <summary>
         /// Reference to the containing profiler, allowing this Timing to affect the Head and get Stopwatch readings.
         /// </summary>
-        internal MiniProfiler Profiler { get; private set; }
+        private readonly MiniProfiler _profiler;
 
         /// <summary>
         /// Offset from parent MiniProfiler's creation that this Timing was created.
@@ -155,22 +139,22 @@ namespace MvcMiniProfiler
         /// </summary>
         public bool IsRoot
         {
-            get { return ParentTiming == null; }
+            get { return Parent == null; }
         }
 
         /// <summary>
         /// How far away this Timing is from the Profiler's Root.
         /// </summary>
-        public Int16 Depth
+        public int Depth
         {
             get
             {
-                Int16 result = 0;
-                var parent = ParentTiming;
+                int result = 0;
+                var parent = Parent;
 
                 while (parent != null)
                 {
-                    parent = parent.ParentTiming;
+                    parent = parent.Parent;
                     result++;
                 }
 
@@ -208,12 +192,13 @@ namespace MvcMiniProfiler
         public Timing(MiniProfiler profiler, Timing parent, string name)
         {
             this.Id = Guid.NewGuid();
-            Profiler = profiler;
-            Profiler.Head = this;
+            _profiler = profiler;
+            _profiler.Head = this;
 
             if (parent != null) // root will have no parent
             {
-                parent.AddChild(this);
+                Parent = parent;
+                Parent.AddChild(this);
             }
 
             Name = name;
@@ -227,14 +212,6 @@ namespace MvcMiniProfiler
         [Obsolete("Used for serialization")]
         public Timing()
         {
-        }
-
-        /// <summary>
-        /// Returns this Timing's Name.
-        /// </summary>
-        public override string ToString()
-        {
-            return Name;
         }
 
         /// <summary>
@@ -255,8 +232,8 @@ namespace MvcMiniProfiler
         {
             if (DurationMilliseconds == null)
             {
-                DurationMilliseconds = MiniProfiler.GetRoundedMilliseconds(Profiler.ElapsedTicks - _startTicks);
-                Profiler.Head = ParentTiming;
+                DurationMilliseconds = MiniProfiler.GetRoundedMilliseconds(_profiler.ElapsedTicks - _startTicks);
+                _profiler.Head = Parent;
             }
         }
 
@@ -265,35 +242,20 @@ namespace MvcMiniProfiler
             Stop();
         }
 
-        /// <summary>
-        /// Add the parameter 'timing' to this Timing's Children collection.
-        /// </summary>
-        /// <remarks>
-        /// Used outside this assembly for custom deserialization when creating an <see cref="Storage.IStorage"/> implementation.
-        /// </remarks>
-        public void AddChild(Timing timing)
+        internal void AddChild(Timing timing)
         {
             if (Children == null)
                 Children = new List<Timing>();
 
             Children.Add(timing);
-            timing.ParentTiming = this;
         }
 
-        /// <summary>
-        /// Adds the parameter 'sqlTiming' to this Timing's SqlTimings collection.
-        /// </summary>
-        /// <param name="sqlTiming">A sql statement profiling that was executed in this Timing step.</param>
-        /// <remarks>
-        /// Used outside this assembly for custom deserialization when creating an <see cref="Storage.IStorage"/> implementation.
-        /// </remarks>
-        public void AddSqlTiming(SqlTiming sqlTiming)
+        internal void AddSqlTiming(SqlTiming stat)
         {
             if (SqlTimings == null)
                 SqlTimings = new List<SqlTiming>();
 
-            SqlTimings.Add(sqlTiming);
-            sqlTiming.ParentTiming = this;
+            SqlTimings.Add(stat);
         }
 
         private int ExecutedCount(ExecuteType type)
