@@ -14,14 +14,15 @@ namespace MvcMiniProfiler.UI
     /// </summary>
     public class MiniProfilerHandler : IRouteHandler, IHttpHandler
     {
-        internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false, int maxTracesToShow = 15)
+        internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false)
         {
             const string format =
 @"<link rel=""stylesheet/less"" type=""text/css"" href=""{path}mini-profiler-includes.less?v={version}"">
 <script type=""text/javascript"" src=""{path}mini-profiler-yepnope.1.0.1.js""></script>
 <script type=""text/javascript"">
     yepnope([
-        {{ test: window.jQuery, nope: '{path}mini-profiler-jquery.1.6.1.js' }}, 
+        {{ test: window.jQuery, nope: '{path}mini-profiler-jquery.1.6.1.js' }},
+        {{ test: window.jQuery && window.jQuery.tmpl, nope: '{path}mini-profiler-jquery.tmpl.beta1.js' }},
         {{ load: '{path}mini-profiler-includes.js?v={version}',
            complete: function() {{
                jQuery(function() {{
@@ -31,8 +32,7 @@ namespace MvcMiniProfiler.UI
                        version: '{version}',
                        renderPosition: '{position}',
                        showTrivial: {showTrivial},
-                       showChildrenTime: {showChildren},
-                       maxTracesToShow: {maxTracesToShow}
+                       showChildrenTime: {showChildren}
                    }});
                }});
          }}
@@ -52,8 +52,7 @@ namespace MvcMiniProfiler.UI
                     id = profiler.Id,
                     position = pos.ToString().ToLower(),
                     showTrivial = showTrivial ? "true" : "false",
-                    showChildren = showTimeWithChildren ? "true" : "false",
-                    maxTracesToShow = maxTracesToShow
+                    showChildren = showTimeWithChildren ? "true" : "false"
                 });
             }
 
@@ -66,7 +65,8 @@ namespace MvcMiniProfiler.UI
             var urls = new[] 
             { 
                 "mini-profiler-yepnope.1.0.1.js", 
-                "mini-profiler-jquery.1.6.1.js", 
+                "mini-profiler-jquery.1.6.1.js",
+                "mini-profiler-jquery.tmpl.beta1.js",
                 "mini-profiler-includes.js", 
                 "mini-profiler-includes.less", 
                 "mini-profiler-includes.tmpl", 
@@ -124,9 +124,10 @@ namespace MvcMiniProfiler.UI
 
             switch (Path.GetFileNameWithoutExtension(path))
             {
-                case "mini-profiler-includes":
-                case "mini-profiler-jquery.1.6.1":
                 case "mini-profiler-yepnope.1.0.1":
+                case "mini-profiler-jquery.1.6.1":
+                case "mini-profiler-jquery.tmpl.beta1":
+                case "mini-profiler-includes":
                     output = Includes(context, path);
                     break;
 
@@ -187,11 +188,11 @@ namespace MvcMiniProfiler.UI
             if (!Guid.TryParse(context.Request.QueryString["id"], out id))
                 return isPopup ? NotFound(context) : NotFound(context, "text/html", "No Guid id specified on the query string");
 
-            MiniProfiler.Settings.EnsureCacheMethods();
-            var profiler = MiniProfiler.Settings.ShortTermCacheGetter(id);
+            MiniProfiler.Settings.EnsureStorageStrategies();
+            var profiler = MiniProfiler.Settings.ShortTermStorage.LoadMiniProfiler(id);
 
             if (profiler == null)
-                profiler = MiniProfiler.Settings.LongTermCacheGetter(id);
+                profiler = MiniProfiler.Settings.LongTermStorage.LoadMiniProfiler(id);
 
             if (profiler == null)
                 return isPopup ? NotFound(context) : NotFound(context, "text/html", "No MiniProfiler results found with Id=" + id.ToString());
@@ -204,7 +205,7 @@ namespace MvcMiniProfiler.UI
             {
                 // the first time we hit this route as a full results page, the prof won't be in long term cache, so put it there for sharing
                 // each subsequent time the full page is hit, just save again, so we act as a sliding expiration
-                MiniProfiler.Settings.LongTermCacheSetter(profiler);
+                MiniProfiler.Settings.LongTermStorage.SaveMiniProfiler(profiler.Id, profiler);
                 return ResultsFullPage(context, profiler);
             }
         }
