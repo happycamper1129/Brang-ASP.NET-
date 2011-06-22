@@ -14,7 +14,7 @@ namespace MvcMiniProfiler.UI
     /// </summary>
     public class MiniProfilerHandler : IRouteHandler, IHttpHandler
     {
-        internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false)
+        internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false, int maxTracesToShow = 15)
         {
             const string format =
 @"<link rel=""stylesheet/less"" type=""text/css"" href=""{path}mini-profiler-includes.less?v={version}"">
@@ -32,7 +32,8 @@ namespace MvcMiniProfiler.UI
                        version: '{version}',
                        renderPosition: '{position}',
                        showTrivial: {showTrivial},
-                       showChildrenTime: {showChildren}
+                       showChildrenTime: {showChildren},
+                       maxTracesToShow: {maxTracesToShow}
                    }});
                }});
          }}
@@ -52,7 +53,8 @@ namespace MvcMiniProfiler.UI
                     id = profiler.Id,
                     position = pos.ToString().ToLower(),
                     showTrivial = showTrivial ? "true" : "false",
-                    showChildren = showTimeWithChildren ? "true" : "false"
+                    showChildren = showTimeWithChildren ? "true" : "false",
+                    maxTracesToShow = maxTracesToShow
                 });
             }
 
@@ -213,7 +215,7 @@ namespace MvcMiniProfiler.UI
         private static string ResultsJson(HttpContext context, MiniProfiler profiler)
         {
             context.Response.ContentType = "application/json";
-            return MiniProfiler.ToJson(profiler);
+            return MiniProfiler.ToFormattedSqlJson(profiler);
         }
 
         private static string ResultsFullPage(HttpContext context, MiniProfiler profiler)
@@ -225,7 +227,7 @@ namespace MvcMiniProfiler.UI
                 .AppendLine()
                 .AppendLine("<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js'></script>")
                 .Append("<script type='text/javascript'> var profiler = ")
-                .Append(MiniProfiler.ToJson(profiler))
+                .Append(MiniProfiler.ToFormattedSqlJson(profiler))
                 .AppendLine(";</script>")
                 .Append(RenderIncludes(profiler)) // figure out how to better pass display options
                 .AppendLine("</head><body><div class='profiler-result-full'></div></body></html>")

@@ -121,6 +121,19 @@ namespace MvcMiniProfiler
             get { return GetTimingHierarchy().Sum(t => t.HasSqlTimings ? t.SqlTimings.Sum(s => s.DurationMilliseconds) : 0); }
         }
 
+
+        [OnDeserialized]
+        void OnDeserialized (StreamingContext ctx) 
+        {
+            HasSqlTimings = _root != null && _root.HasSqlTimings;
+            HasDuplicateSqlTimings = _root != null && _root.HasDuplicateSqlTimings;
+            if (_root != null)
+            {
+                _root.RebuildParentTimings();
+            }
+        }
+
+
         /// <summary>
         /// Returns true when we have profiled queries.
         /// </summary>
@@ -410,9 +423,9 @@ namespace MvcMiniProfiler
         /// <param name="showTrivial">Whether to show trivial timings by default (defaults to false)</param>
         /// <param name="showTimeWithChildren">Whether to show time the time with children column by default (defaults to false)</param>
         /// <returns>Script and link elements normally; an empty string when there is no active profiling session.</returns>
-        public static IHtmlString RenderIncludes(RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false)
+        public static IHtmlString RenderIncludes(RenderPosition? position = null, bool showTrivial = false, bool showTimeWithChildren = false, int maxTracesToShow = 15)
         {
-            return UI.MiniProfilerHandler.RenderIncludes(Current, position, showTrivial, showTimeWithChildren);
+            return UI.MiniProfilerHandler.RenderIncludes(Current, position, showTrivial, showTimeWithChildren, maxTracesToShow);
         }
 
         /// <summary>
@@ -458,6 +471,27 @@ namespace MvcMiniProfiler
         }
 
         /// <summary>
+        /// Returns the profiler text as formatted SQL (with inline params etc. handled)
+        /// </summary>
+        /// <param name="profiler"></param>
+        /// <returns></returns>
+        public static string ToFormattedSqlJson(MiniProfiler profiler)
+        {
+            var formatter =  Settings.SqlFormatter;
+            MiniProfiler clone = null; 
+            if (formatter != null)
+            {
+                clone = profiler.Clone();
+                foreach (var timing in clone.GetSqlTimings())
+                {
+                    timing.CommandString = formatter.FormatSql(timing);
+                }
+            }
+
+            return MiniProfiler.ToJson(clone ?? profiler);
+        }
+
+        /// <summary>
         /// Deserializes the json string parameter to a <see cref="MiniProfiler"/>.
         /// </summary>
         public static MiniProfiler FromJson(string json)
@@ -466,6 +500,21 @@ namespace MvcMiniProfiler
 
             var result = new JavaScriptSerializer().Deserialize<MiniProfiler>(json);
             return result;
+        }
+
+        /// <summary>
+        /// Create a DEEP clone of this object
+        /// </summary>
+        /// <returns></returns>
+        public MiniProfiler Clone()
+        {
+            var serializer = new DataContractSerializer(typeof(MiniProfiler), null, int.MaxValue, false, true, null);
+            using (var ms = new System.IO.MemoryStream())
+            {
+                serializer.WriteObject(ms, this);
+                ms.Position = 0;
+                return (MiniProfiler)serializer.ReadObject(ms);
+            }
         }
     }
 
