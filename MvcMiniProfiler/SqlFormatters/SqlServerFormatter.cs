@@ -54,9 +54,11 @@ namespace MvcMiniProfiler.SqlFormatters
                 return timing.CommandString;
             }
 
-            StringBuilder buffer = new StringBuilder();
+            StringBuilder declares = new StringBuilder();
+            StringBuilder sets = new StringBuilder();
 
-            buffer.Append("DECLARE ");
+            declares.Append("DECLARE ");
+            sets.Append("SELECT ");
 
             bool first = true;
             foreach (var p in timing.Parameters)
@@ -67,7 +69,8 @@ namespace MvcMiniProfiler.SqlFormatters
                 }
                 else
                 {
-                    buffer.AppendLine(",").Append(new string(' ', 8));
+                    declares.Append(", ");
+                    sets.Append(", "); 
                 }
 
                 DbType parsed;
@@ -93,11 +96,13 @@ namespace MvcMiniProfiler.SqlFormatters
                     niceName = "@" + niceName;
                 }
 
-                buffer.Append(niceName).Append(" ").Append(resolvedType).Append(" = ").Append(PrepareValue(p));
+                declares.Append(niceName).Append(" ").Append(resolvedType);
+                sets.Append(niceName).Append(" = ").Append(PrepareValue(p));
             }
 
-            return buffer
+            return declares
                 .AppendLine()
+                .AppendLine(sets.ToString())
                 .AppendLine()
                 .Append(timing.CommandString)
                 .ToString();
@@ -106,14 +111,14 @@ namespace MvcMiniProfiler.SqlFormatters
         static readonly string[] dontQuote = new string[] {"Int16","Int32","Int64", "Boolean"};
         private string PrepareValue(SqlTimingParameter p)
         {
-            if (p.Value == null)
-            {
-                return "null";
-            }
-
             if (dontQuote.Contains(p.DbType))
             {
                 return p.Value;
+            }
+
+            if (p.Value == null)
+            {
+                return "null";
             }
 
             string prefix = "";
