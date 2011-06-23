@@ -217,10 +217,12 @@
 
             if (bg.is(':visible')) {
                 // ctrl-c will be hit on html target - let's not hide.
-                hideQueries = isEscPress || (e.type == 'click' && !$.contains(queries[0], e.target) && !$.contains(popup[0], e.target));
+                if (!(e.keyCode == 17 && e.ctrlKey)) {
+                    hideQueries = isEscPress || !$.contains(queries[0], e.target) && !$.contains(popup[0], e.target);
+                }
             }
             else if (popup.is(':visible')) {
-                hidePopup = isEscPress || (e.type == 'click' && !$.contains(popup[0], e.target) && !$.contains(button[0], e.target) && button[0] != e.target);
+                hidePopup = isEscPress || (!$.contains(popup[0], e.target) && !$.contains(button[0], e.target) && button[0] != e.target);
             }
 
             if (hideQueries) {

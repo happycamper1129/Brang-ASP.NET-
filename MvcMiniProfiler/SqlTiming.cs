@@ -31,14 +31,26 @@ namespace MvcMiniProfiler
         /// <summary>
         /// The sql that was executed.
         /// </summary>
+        [ScriptIgnore]
         [DataMember(Order = 2)]
         public string CommandString { get; set; }
 
         /// <summary>
         /// The sql that was executed.
         /// </summary>
+        [ScriptIgnore]
         [DataMember(Order = 8)]
         public string RawCommandString { get; private set; }
+
+
+        public string FormattedCommandString { 
+            get 
+            {
+                if (MiniProfiler.Settings.SqlFormatter == null) return CommandString;
+
+                return MiniProfiler.Settings.SqlFormatter.FormatSql(this);
+            }
+        }
 
         /// <summary>
         /// Roughly where in the calling code that this sql was executed.
@@ -178,11 +190,24 @@ namespace MvcMiniProfiler
             {
                 if (!string.IsNullOrWhiteSpace(p.ParameterName))
                 {
+                    string val = null;
+                    if (p.Value != DBNull.Value)
+                    {
+                        if (p.Value is DateTime)
+                        {
+                            val = ((DateTime)p.Value).ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                        }
+                        else
+                        {
+                            val = p.Value.ToString();
+                        }
+                    }
+
                     result.Add(new SqlTimingParameter
                     {
                         ParentSqlTimingId = Id,
                         Name = p.ParameterName.Trim(),
-                        Value = (p.Value == null || p.Value is DBNull) ? null : p.Value.ToString(),
+                        Value = val,
                         DbType = p.DbType.ToString(),
                         Size = p.Size
                     });
