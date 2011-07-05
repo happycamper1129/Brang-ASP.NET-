@@ -33,12 +33,12 @@ namespace MvcMiniProfiler.Storage
 
         /// <summary>
         /// Saves <paramref name="profiler"/> to the HttpRuntime.Cache under a key concated with <see cref="CacheKeyPrefix"/>
-        /// and the parameter's <see cref="MiniProfiler.Id"/>.
+        /// and <paramref name="id"/>.
         /// </summary>
-        public void SaveMiniProfiler(MiniProfiler profiler)
+        public void SaveMiniProfiler(Guid id, MiniProfiler profiler)
         {
             HttpRuntime.Cache.Insert(
-                    key: GetCacheKey(profiler.Id),
+                    key: GetCacheKey(id),
                     value: profiler,
                     dependencies: null,
                     absoluteExpiration: DateTime.Now.Add(CacheDuration), // servers will cache based on local now

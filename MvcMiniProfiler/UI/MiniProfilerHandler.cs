@@ -180,8 +180,11 @@ namespace MvcMiniProfiler.UI
             if (!Guid.TryParse(context.Request.QueryString["id"], out id))
                 return isPopup ? NotFound(context) : NotFound(context, "text/plain", "No Guid id specified on the query string");
 
-            MiniProfiler.Settings.EnsureStorageStrategy();
-            var profiler = MiniProfiler.Settings.Storage.LoadMiniProfiler(id);
+            MiniProfiler.Settings.EnsureStorageStrategies();
+            var profiler = MiniProfiler.Settings.ShortTermStorage.LoadMiniProfiler(id);
+
+            if (profiler == null)
+                profiler = MiniProfiler.Settings.LongTermStorage.LoadMiniProfiler(id);
 
             if (profiler == null)
                 return isPopup ? NotFound(context) : NotFound(context, "text/plain", "No MiniProfiler results found with Id=" + id.ToString());
@@ -195,7 +198,17 @@ namespace MvcMiniProfiler.UI
                 return "Unauthorized";
             }
 
-            return isPopup ? ResultsJson(context, profiler) : ResultsFullPage(context, profiler);
+            if (isPopup)
+            {
+                return ResultsJson(context, profiler);
+            }
+            else
+            {
+                // the first time we hit this route as a full results page, the prof won't be in long term cache, so put it there for sharing
+                // each subsequent time the full page is hit, just save again, so we act as a sliding expiration
+                MiniProfiler.Settings.LongTermStorage.SaveMiniProfiler(profiler.Id, profiler);
+                return ResultsFullPage(context, profiler);
+            }
         }
 
         private static string ResultsJson(HttpContext context, MiniProfiler profiler)

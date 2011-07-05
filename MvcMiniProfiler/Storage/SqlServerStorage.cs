@@ -23,10 +23,9 @@ namespace MvcMiniProfiler.Storage
         }
 
         /// <summary>
-        /// Stores <param name="profiler"/> to dbo.MiniProfilers under its <see cref="MiniProfiler.Id"/>; 
-        /// stores all child Timings and SqlTimings to their respective tables.
+        /// Stores 'profiler' to dbo.MiniProfilers under 'id'; stores all child Timings and SqlTimings to their respective tables.
         /// </summary>
-        public override void SaveMiniProfiler(MiniProfiler profiler)
+        public override void SaveMiniProfiler(Guid id, MiniProfiler profiler)
         {
             const string sql =
 @"insert into MiniProfilers
@@ -34,7 +33,6 @@ namespace MvcMiniProfiler.Storage
              Name,
              Started,
              MachineName,
-             User,
              Level,
              RootTimingId,
              DurationMilliseconds,
@@ -43,13 +41,11 @@ namespace MvcMiniProfiler.Storage
              HasDuplicateSqlTimings,
              HasTrivialTimings,
              HasAllTrivialTimings,
-             TrivialDurationThresholdMilliseconds,
-             HasUserViewed)
+             TrivialDurationThresholdMilliseconds)
 select       @Id,
              @Name,
              @Started,
              @MachineName,
-             @User,
              @Level,
              @RootTimingId,
              @DurationMilliseconds,
@@ -58,8 +54,7 @@ select       @Id,
              @HasDuplicateSqlTimings,
              @HasTrivialTimings,
              @HasAllTrivialTimings,
-             @TrivialDurationThresholdMilliseconds,
-             @HasUserViewed
+             @TrivialDurationThresholdMilliseconds
 where not exists (select 1 from MiniProfilers where Id = @Id)"; // this syntax works on both mssql and sqlite
 
             using (var conn = GetOpenConnection())
@@ -70,7 +65,6 @@ where not exists (select 1 from MiniProfilers where Id = @Id)"; // this syntax w
                     Name = profiler.Name,
                     Started = profiler.Started,
                     MachineName = profiler.MachineName,
-                    User = profiler.User,
                     Level = profiler.Level,
                     RootTimingId = profiler.Root.Id,
                     DurationMilliseconds = profiler.DurationMilliseconds,
@@ -79,8 +73,7 @@ where not exists (select 1 from MiniProfilers where Id = @Id)"; // this syntax w
                     HasDuplicateSqlTimings = profiler.HasDuplicateSqlTimings,
                     HasTrivialTimings = profiler.HasTrivialTimings,
                     HasAllTrivialTimings = profiler.HasAllTrivialTimings,
-                    TrivialDurationThresholdMilliseconds = profiler.TrivialDurationThresholdMilliseconds,
-                    HasUserViewed = profiler.HasUserViewed
+                    TrivialDurationThresholdMilliseconds = profiler.TrivialDurationThresholdMilliseconds
                 });
 
                 if (insertCount > 0)
@@ -305,7 +298,6 @@ select * from MiniProfilerSqlTimingParameters where MiniProfilerId = @id";
      Name                                 nvarchar(200) not null,
      Started                              datetime not null,
      MachineName                          nvarchar(100) null,
-     User                                 nvarchar(100) null,
      Level                                tinyint null,
      RootTimingId                         uniqueidentifier null,
      DurationMilliseconds                 decimal(7, 1) not null,
@@ -314,8 +306,7 @@ select * from MiniProfilerSqlTimingParameters where MiniProfilerId = @id";
      HasDuplicateSqlTimings               bit not null,
      HasTrivialTimings                    bit not null,
      HasAllTrivialTimings                 bit not null,
-     TrivialDurationThresholdMilliseconds decimal(5, 1) null,
-     HasUserViewed                        bit not null
+     TrivialDurationThresholdMilliseconds decimal(5, 1) null
   )
 
 create table MiniProfilerTimings

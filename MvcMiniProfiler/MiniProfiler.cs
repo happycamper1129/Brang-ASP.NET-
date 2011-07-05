@@ -50,27 +50,6 @@ namespace MvcMiniProfiler
         [DataMember(Order = 5)]
         public ProfileLevel Level { get; set; }
 
-        /// <summary>
-        /// A string identifying the user/client that is profiling this request.  Set <see cref="MiniProfiler.Settings.UserProvider"/>
-        /// with an <see cref="IUserProvider"/>-implementing class to provide a custom value.
-        /// </summary>
-        /// <remarks>
-        /// If this is not set manually at some point, the <see cref="MiniProfiler.Settings.UserProvider"/> implementation will be used;
-        /// by default, this will be the current request's ip address.
-        /// </remarks>
-        [DataMember(Order = 6)]
-        public string User { get; set; }
-
-        /// <summary>
-        /// Returns true when this MiniProfiler has been viewed by the <see cref="User"/> that recorded it.
-        /// </summary>
-        /// <remarks>
-        /// Allows POSTs that result in a redirect to be profiled. <see cref="MiniProfiler.Settings.Storage"/> implementation
-        /// will keep a list of all profilers that haven't been fetched down.
-        /// </remarks>
-        [DataMember(Order = 7)]
-        public bool HasUserViewed { get; set; }
-
 
         private Timing _root;
         /// <summary>
@@ -375,11 +354,8 @@ namespace MvcMiniProfiler
             var request = context.Request;
             var response = context.Response;
 
-            // set the profiler name to Controller/Action or /url
+            // also set the profiler name to Controller/Action or /url
             EnsureName(current, request);
-
-            // set the user identity of who is profiling this request
-            EnsureUser(current, request);
 
             try
             {
@@ -389,8 +365,8 @@ namespace MvcMiniProfiler
             catch { } // headers blew up
 
             // because we fetch profiler results after the page loads, we have to put them somewhere in the meantime
-            Settings.EnsureStorageStrategy();
-            Settings.Storage.SaveMiniProfiler(current);
+            Settings.EnsureStorageStrategies();
+            Settings.ShortTermStorage.SaveMiniProfiler(current.Id, current);
         }
 
         /// <summary>
@@ -420,16 +396,6 @@ namespace MvcMiniProfiler
                         profiler.Name = profiler.Name.Remove(50);
                 }
             }
-        }
-
-        /// <summary>
-        /// Ensures that there's a <see cref="MiniProfiler.User"/> identity set on the parameter profiler.
-        /// </summary>
-        private static void EnsureUser(MiniProfiler profiler, HttpRequest request)
-        {
-            if (profiler.User.HasValue()) return;
-
-            profiler.User = (Settings.UserProvider ?? new IpAddressIdentity()).GetUser(request);
         }
 
         /// <summary>

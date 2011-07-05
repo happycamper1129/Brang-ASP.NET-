@@ -52,9 +52,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Helpers\ExtensionMethods.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Data\ContextUtils.cs" />
     <Compile Include="Data\Link.cs" />
     <Compile Include="Data\ProfiledDbCommand.cs">
@@ -67,15 +64,10 @@
     <Compile Include="Data\ProfiledDbProviderFactory.cs" />
     <Compile Include="Data\ProfiledDbProviderServices.cs" />
     <Compile Include="Data\ProfiledDbTransaction.cs" />
+    <Compile Include="Helpers\ExtensionMethods.cs" />
     <Compile Include="Helpers\SqlMapper.cs" />
     <Compile Include="Helpers\StackTraceSnippet.cs" />
     <Compile Include="Helpers\HaackFormatter.cs" />
-    <Compile Include="IpAddressProvider.cs">
-      <DependentUpon>IUserProvider.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IUserProvider.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="MiniProfiler.Settings.cs">
       <DependentUpon>MiniProfiler.cs</DependentUpon>
     </Compile>
