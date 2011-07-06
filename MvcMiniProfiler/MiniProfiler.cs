@@ -50,6 +50,27 @@ namespace MvcMiniProfiler
         [DataMember(Order = 5)]
         public ProfileLevel Level { get; set; }
 
+        /// <summary>
+        /// A string identifying the user/client that is profiling this request.  Set <see cref="MiniProfiler.Settings.UserProvider"/>
+        /// with an <see cref="IUserProvider"/>-implementing class to provide a custom value.
+        /// </summary>
+        /// <remarks>
+        /// If this is not set manually at some point, the <see cref="MiniProfiler.Settings.UserProvider"/> implementation will be used;
+        /// by default, this will be the current request's ip address.
+        /// </remarks>
+        [DataMember(Order = 6)]
+        public string User { get; set; }
+
+        /// <summary>
+        /// Returns true when this MiniProfiler has been viewed by the <see cref="User"/> that recorded it.
+        /// </summary>
+        /// <remarks>
+        /// Allows POSTs that result in a redirect to be profiled. <see cref="MiniProfiler.Settings.Storage"/> implementation
+        /// will keep a list of all profilers that haven't been fetched down.
+        /// </remarks>
+        [DataMember(Order = 7)]
+        public bool HasUserViewed { get; set; }
+
 
         private Timing _root;
         /// <summary>
@@ -194,7 +215,6 @@ namespace MvcMiniProfiler
             SqlProfiler = new SqlProfiler(this);
             MachineName = Environment.MachineName;
             _sqlCounts = new Dictionary<string, int>();
-
             Started = DateTime.UtcNow;
 
             // stopwatch must start before any child Timings are instantiated
@@ -321,6 +341,9 @@ namespace MvcMiniProfiler
             var result = new MiniProfiler(url.OriginalString, level);
             Current = result;
 
+            // don't really want to pass in the context to MiniProfler's constructor or access it statically in there, either
+            result.User = (Settings.UserProvider ?? new IpAddressIdentity()).GetUser(context.Request);
+
             return result;
         }
 
@@ -354,19 +377,20 @@ namespace MvcMiniProfiler
             var request = context.Request;
             var response = context.Response;
 
-            // also set the profiler name to Controller/Action or /url
+            // set the profiler name to Controller/Action or /url
             EnsureName(current, request);
+
+            // because we fetch profiler results after the page loads, we have to put them somewhere in the meantime
+            Settings.EnsureStorageStrategy();
+            Settings.Storage.Save(current);
 
             try
             {
+                var arrayOfIds = Settings.Storage.GetUnviewedIds(current.User).ToJson();
                 // allow profiling of ajax requests
-                response.AppendHeader("X-MiniProfiler-Id", current.Id.ToString());
+                response.AppendHeader("X-MiniProfiler-Ids", arrayOfIds);
             }
             catch { } // headers blew up
-
-            // because we fetch profiler results after the page loads, we have to put them somewhere in the meantime
-            Settings.EnsureStorageStrategies();
-            Settings.ShortTermStorage.SaveMiniProfiler(current.Id, current);
         }
 
         /// <summary>

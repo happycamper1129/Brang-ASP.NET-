@@ -11,21 +11,27 @@ namespace MvcMiniProfiler.Storage
     public interface IStorage
     {
         /// <summary>
-        /// Stores <paramref name="profiler"/> under <paramref name="id"/>, which is also its <see cref="MiniProfiler.Id"/>.
+        /// Stores <paramref name="profiler"/> under its <see cref="MiniProfiler.Id"/>.
         /// </summary>
-        /// <param name="id">
-        /// The Guid that identifies the MiniProfiler; subsequent calls to <see cref="LoadMiniProfiler"/>
-        /// will pass this Guid.
-        /// </param>
         /// <param name="profiler">The results of a profiling session.</param>
         /// <remarks>
-        /// Should be able to be called multiple times on the same profiler.
+        /// Should also ensure the profiler is stored as being unviewed by its profiling <see cref="MiniProfiler.User"/>.
         /// </remarks>
-        void SaveMiniProfiler(Guid id, MiniProfiler profiler);
+        void Save(MiniProfiler profiler);
 
         /// <summary>
-        /// Returns a <see cref="MiniProfiler"/> from storage based on <paramref name="id"/>.
+        /// Returns a <see cref="MiniProfiler"/> from storage based on <paramref name="id"/>, which should map to <see cref="MiniProfiler.Id"/>.
         /// </summary>
-        MiniProfiler LoadMiniProfiler(Guid id);
+        /// <remarks>
+        /// Should also update that the resulting profiler has been marked as viewed by its profiling <see cref="MiniProfiler.User"/>.
+        /// </remarks>
+        MiniProfiler Load(Guid id);
+
+        /// <summary>
+        /// Returns a list of <see cref="MiniProfiler.Id"/>s that haven't been seen by <paramref name="user"/>.
+        /// </summary>
+        /// <param name="user">User identified by the current <see cref="MiniProfiler.Settings.UserProvider"/>.</param>
+        List<Guid> GetUnviewedIds(string user);
+
     }
 }

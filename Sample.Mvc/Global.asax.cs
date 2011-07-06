@@ -71,13 +71,12 @@ namespace SampleWeb
             // a powerful feature of the MiniProfiler is the ability to share links to results with other developers.
             // by default, however, long-term result caching is done in HttpRuntime.Cache, which is very volatile.
             // 
-            // let's rig up methods to json serialize our profiler results to a database, so they survive app restarts.
-            // (note: this method is more to test that the MiniProfiler can be serialized - a real database storage
-            // scheme would put each property into its own column, so they could be queried independently of the MiniProfiler's UI)
+            // let's rig up serialization of our profiler results to a database, so they survive app restarts.
+            MiniProfiler.Settings.Storage = new Helpers.SqliteMiniProfilerStorage(ConnectionString);
 
-            MiniProfiler.Settings.LongTermStorage = new Helpers.SqliteMiniProfilerStorage(ConnectionString);
-
-            MiniProfiler.Settings.SqlFormatter = new MvcMiniProfiler.SqlFormatters.SqlServerFormatter();
+            // different RDBMS have different ways of declaring sql parameters - SQLite can understand inline sql parameters just fine
+            // by default, sql parameters won't be displayed
+            MiniProfiler.Settings.SqlFormatter = new MvcMiniProfiler.SqlFormatters.InlineFormatter();
 
             // these settings are optional and all have defaults, any matching setting specified in .RenderIncludes() will
             // override the application-wide defaults specified here, for example if you had both:
@@ -86,18 +85,9 @@ namespace SampleWeb
             //    @MiniProfiler.RenderIncludes(position: RenderPosition.Left)
             // then the position would be on the left that that page, and on the right (the app default) for anywhere that doesn't
             // specified position in the .RenderIncludes() call.
-
             MiniProfiler.Settings.PopupRenderPosition = RenderPosition.Right; //defaults to left
             MiniProfiler.Settings.PopupMaxTracesToShow = 10;                  //defaults to 15
             MiniProfiler.Settings.RouteBasePath = "~/profiler";               //e.g. /profiler/mini-profiler-includes.js
-
-            // optional settings to control the stack trace output in the details pane
-            // the exclude methods are not thread safe, so be sure to only call these once per appdomain
-
-            MiniProfiler.Settings.ExcludeType("SessionFactory"); // Ignore any class with the name of SessionFactory
-            MiniProfiler.Settings.ExcludeAssembly("NHibernate"); // Ignore any assembly named NHibernate
-            MiniProfiler.Settings.ExcludeMethod("Flush");        // Ignore any method with the name of Flush
-            MiniProfiler.Settings.StackMaxLength = 256;          // default is 120 characters
 
             // because profiler results can contain sensitive data (e.g. sql queries with parameter values displayed), we
             // can define a function that will authorize clients to see the json or full page results.
