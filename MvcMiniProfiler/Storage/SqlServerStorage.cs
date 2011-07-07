@@ -23,10 +23,9 @@ namespace MvcMiniProfiler.Storage
         }
 
         /// <summary>
-        /// Stores <param name="profiler"/> to dbo.MiniProfilers under its <see cref="MiniProfiler.Id"/>; 
-        /// stores all child Timings and SqlTimings to their respective tables.
+        /// Stores 'profiler' to dbo.MiniProfilers under 'id'; stores all child Timings and SqlTimings to their respective tables.
         /// </summary>
-        public override void Save(MiniProfiler profiler)
+        public override void SaveMiniProfiler(Guid id, MiniProfiler profiler)
         {
             const string sql =
 @"insert into MiniProfilers
@@ -34,7 +33,6 @@ namespace MvcMiniProfiler.Storage
              Name,
              Started,
              MachineName,
-             [User],
              Level,
              RootTimingId,
              DurationMilliseconds,
@@ -43,13 +41,11 @@ namespace MvcMiniProfiler.Storage
              HasDuplicateSqlTimings,
              HasTrivialTimings,
              HasAllTrivialTimings,
-             TrivialDurationThresholdMilliseconds,
-             HasUserViewed)
+             TrivialDurationThresholdMilliseconds)
 select       @Id,
              @Name,
              @Started,
              @MachineName,
-             @User,
              @Level,
              @RootTimingId,
              @DurationMilliseconds,
@@ -58,8 +54,7 @@ select       @Id,
              @HasDuplicateSqlTimings,
              @HasTrivialTimings,
              @HasAllTrivialTimings,
-             @TrivialDurationThresholdMilliseconds,
-             @HasUserViewed
+             @TrivialDurationThresholdMilliseconds
 where not exists (select 1 from MiniProfilers where Id = @Id)"; // this syntax works on both mssql and sqlite
 
             using (var conn = GetOpenConnection())
@@ -70,7 +65,6 @@ where not exists (select 1 from MiniProfilers where Id = @Id)"; // this syntax w
                     Name = profiler.Name,
                     Started = profiler.Started,
                     MachineName = profiler.MachineName,
-                    User = profiler.User,
                     Level = profiler.Level,
                     RootTimingId = profiler.Root.Id,
                     DurationMilliseconds = profiler.DurationMilliseconds,
@@ -79,8 +73,7 @@ where not exists (select 1 from MiniProfilers where Id = @Id)"; // this syntax w
                     HasDuplicateSqlTimings = profiler.HasDuplicateSqlTimings,
                     HasTrivialTimings = profiler.HasTrivialTimings,
                     HasAllTrivialTimings = profiler.HasAllTrivialTimings,
-                    TrivialDurationThresholdMilliseconds = profiler.TrivialDurationThresholdMilliseconds,
-                    HasUserViewed = profiler.HasUserViewed
+                    TrivialDurationThresholdMilliseconds = profiler.TrivialDurationThresholdMilliseconds
                 });
 
                 if (insertCount > 0)
@@ -253,63 +246,34 @@ values      (@MiniProfilerId,
         /// <summary>
         /// Loads the MiniProfiler identifed by 'id' from the database.
         /// </summary>
-        public override MiniProfiler Load(Guid id)
+        public override MiniProfiler LoadMiniProfiler(Guid id)
         {
             const string sql =
 @"select * from MiniProfilers where Id = @id
-select * from MiniProfilerTimings where MiniProfilerId = @id order by RowId
+select * from MiniProfilerTimings where  MiniProfilerId = @id order by RowId
 select * from MiniProfilerSqlTimings where MiniProfilerId = @id order by RowId
 select * from MiniProfilerSqlTimingParameters where MiniProfilerId = @id";
 
             MiniProfiler result = null;
 
             using (var conn = GetOpenConnection())
+            using (var multi = conn.QueryMultiple(sql, new { id = id }))
             {
-                var param = new { id = id };
+                result = multi.Read<MiniProfiler>().SingleOrDefault();
 
-                using (var multi = conn.QueryMultiple(sql, param))
+                if (result != null)
                 {
-                    result = multi.Read<MiniProfiler>().SingleOrDefault();
+                    // HACK: stored dates are utc, but are pulled out as local time - maybe use datetimeoffset data type?
+                    result.Started = new DateTime(result.Started.Ticks, DateTimeKind.Utc);
 
-                    if (result != null)
-                    {
-                        // HACK: stored dates are utc, but are pulled out as local time - maybe use datetimeoffset data type?
-                        result.Started = new DateTime(result.Started.Ticks, DateTimeKind.Utc);
-
-                        var timings = multi.Read<Timing>().ToList();
-                        var sqlTimings = multi.Read<SqlTiming>().ToList();
-                        var sqlParameters = multi.Read<SqlTimingParameter>().ToList();
-                        MapTimings(result, timings, sqlTimings, sqlParameters);
-                    }
-                }
-
-                // loading a profiler means we've viewed it
-                if (result != null && !result.HasUserViewed)
-                {
-                    conn.Execute("update MiniProfilers set HasUserViewed = 1 where Id = @id", param);
+                    var timings = multi.Read<Timing>().ToList();
+                    var sqlTimings = multi.Read<SqlTiming>().ToList();
+                    var sqlParameters = multi.Read<SqlTimingParameter>().ToList();
+                    MapTimings(result, timings, sqlTimings, sqlParameters);
                 }
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Returns a list of <see cref="MiniProfiler.Id"/>s that haven't been seen by <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">User identified by the current <see cref="MiniProfiler.Settings.UserProvider"/>.</param>
-        public override List<Guid> GetUnviewedIds(string user)
-        {
-            const string sql =
-@"select Id
-from   MiniProfilers
-where  [User] = @user
-and    HasUserViewed = 0
-order  by Started";
-
-            using (var conn = GetOpenConnection())
-            {
-                return conn.Query<Guid>(sql, new { user }).ToList();
-            }
         }
 
         /// <summary>
@@ -334,7 +298,6 @@ order  by Started";
      Name                                 nvarchar(200) not null,
      Started                              datetime not null,
      MachineName                          nvarchar(100) null,
-     [User]                               nvarchar(100) null,
      Level                                tinyint null,
      RootTimingId                         uniqueidentifier null,
      DurationMilliseconds                 decimal(7, 1) not null,
@@ -343,8 +306,7 @@ order  by Started";
      HasDuplicateSqlTimings               bit not null,
      HasTrivialTimings                    bit not null,
      HasAllTrivialTimings                 bit not null,
-     TrivialDurationThresholdMilliseconds decimal(5, 1) null,
-     HasUserViewed                        bit not null
+     TrivialDurationThresholdMilliseconds decimal(5, 1) null
   )
 
 create table MiniProfilerTimings

@@ -3,21 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web.Script.Serialization;
 
 namespace MvcMiniProfiler.Helpers
 {
     /// <summary>
     /// Common extension methods to use only in this project
     /// </summary>
-    internal static class ExtensionMethods
+    public static class ExtensionMethods
     {
         /// <summary>
         /// Answers true if this String is either null or empty.
         /// </summary>
-        internal static bool IsNullOrWhiteSpace(this string s)
+        internal static bool IsNullOrEmpty(this string s)
         {
-            return string.IsNullOrWhiteSpace(s);
+            return string.IsNullOrEmpty(s);
         }
 
         /// <summary>
@@ -25,7 +24,7 @@ namespace MvcMiniProfiler.Helpers
         /// </summary>
         internal static bool HasValue(this string s)
         {
-            return !string.IsNullOrWhiteSpace(s);
+            return !string.IsNullOrEmpty(s);
         }
 
         /// <summary>
@@ -53,15 +52,6 @@ namespace MvcMiniProfiler.Helpers
         {
             if (string.IsNullOrEmpty(input)) return "";
             return Regex.Replace(input, "/+$", "");
-        }
-
-        /// <summary>
-        /// Serializes <paramref name="o"/> to a json string.
-        /// </summary>
-        internal static string ToJson(this object o)
-        {
-            if (o == null) return null;
-            return new JavaScriptSerializer().Serialize(o);
         }
     }
 }

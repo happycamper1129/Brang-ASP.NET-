@@ -26,20 +26,14 @@ namespace MvcMiniProfiler.Storage
         }
 
         /// <summary>
-        /// Saves 'profiler' to a database under its <see cref="MiniProfiler.Id"/>.
+        /// Saves 'profiler' to a database under 'id'.
         /// </summary>
-        public abstract void Save(MiniProfiler profiler);
+        public abstract void SaveMiniProfiler(Guid id, MiniProfiler profiler);
 
         /// <summary>
         /// Returns the MiniProfiler identified by 'id' from the database or null when no MiniProfiler exists under that 'id'.
         /// </summary>
-        public abstract MiniProfiler Load(Guid id);
-
-        /// <summary>
-        /// Returns a list of <see cref="MiniProfiler.Id"/>s that haven't been seen by <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">User identified by the current <see cref="MiniProfiler.Settings.UserProvider"/>.</param>
-        public abstract List<Guid> GetUnviewedIds(string user);
+        public abstract MiniProfiler LoadMiniProfiler(Guid id);
 
         /// <summary>
         /// Returns a DbConnection for your specific provider.

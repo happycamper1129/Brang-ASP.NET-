@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel;
 using System.Reflection;
@@ -13,6 +14,10 @@ namespace MvcMiniProfiler
         /// </summary>
         public static class Settings
         {
+        	private static readonly HashSet<string> assembliesToExclude;
+        	private static readonly HashSet<string> typesToExclude;
+        	private static readonly HashSet<string> methodsToExclude;
+
             static Settings()
             {
                 var props = from p in typeof(Settings).GetProperties(BindingFlags.Public | BindingFlags.Static)
@@ -27,7 +32,92 @@ namespace MvcMiniProfiler
                 }
 
                 Version = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion;
+
+                typesToExclude = new HashSet<string>
+                {
+                    // while we like our Dapper friend, we don't want to see him all the time
+                    "SqlMapper"
+                };
+
+                methodsToExclude = new HashSet<string>
+                {
+                    "lambda_method",
+                    ".ctor"
+                };
+
+                assembliesToExclude = new HashSet<string>
+                {
+                    // our assembly
+                    "MvcMiniProfiler",
+
+                    // reflection emit
+                    "Anonymously Hosted DynamicMethods Assembly",
+
+                    // the man
+                    "System.Core",
+                    "System.Data",
+                    "System.Data.Linq",
+                    "System.Web",
+                    "System.Web.Mvc",
+                };
             }
+
+        	/// <summary>
+            /// Assemblies to exclude from the stack trace report.
+            /// </summary>
+            public static IEnumerable<string> AssembliesToExclude
+            {
+                get { return assembliesToExclude; }
+            }
+
+        	/// <summary>
+        	/// Types to exclude from the stack trace report.
+        	/// </summary>
+        	public static IEnumerable<string> TypesToExclude
+        	{
+        		get { return typesToExclude; }
+        	}
+
+        	/// <summary>
+            /// Methods to exclude from the stack trace report.
+            /// </summary>
+            public static IEnumerable<string> MethodsToExclude
+            {
+                get { return methodsToExclude; }
+            }
+
+            /// <summary>
+            /// Excludes the specified assembly from the stack trace output.
+            /// </summary>
+            /// <param name="assemblyName">The short name of the assembly. AssemblyName.Name</param>
+            public static void ExcludeAssembly(string assemblyName)
+            {
+                assembliesToExclude.Add(assemblyName);
+            }
+
+        	/// <summary>
+        	/// Excludes the specified type from the stack trace output.
+        	/// </summary>
+        	/// <param name="typeToExclude">The System.Type name to exclude</param>
+        	public static void ExcludeType(string typeToExclude)
+        	{
+        		typesToExclude.Add(typeToExclude);
+        	}
+
+        	/// <summary>
+            /// Excludes the specified method name from the stack trace output.
+            /// </summary>
+            /// <param name="methodName">The name of the method</param>
+            public static void ExcludeMethod(string methodName)
+            {
+                methodsToExclude.Add(methodName);
+            }
+
+        	/// <summary>
+            /// The max length of the stack string to report back; defaults to 120 chars.
+            /// </summary>
+            [DefaultValue(120)]
+            public static int StackMaxLength { get; set; }
 
             /// <summary>
             /// Any Timing step with a duration less than or equal to this will be hidden by default in the UI; defaults to 2.0 ms.
@@ -73,9 +163,9 @@ namespace MvcMiniProfiler
             /// <summary>
             /// When <see cref="MiniProfiler.Start"/> is called, if the current request url starts with this property,
             /// no profiler will be instantiated and no results will be displayed.  
-            /// Default value is { "/mini-profiler-", "/content/", "/scripts/", "/favicon.ico" }.
+            /// Default value is { "/mini-profiler-", "/content/", "/scripts/" }.
             /// </summary>
-            [DefaultValue(new string[] { "/mini-profiler-", "/content/", "/scripts/", "/favicon.ico" })]
+            [DefaultValue(new string[] { "/mini-profiler-", "/content/", "/scripts/" })]
             public static string[] IgnoredRootPaths { get; set; }
 
             /// <summary>
@@ -87,8 +177,8 @@ namespace MvcMiniProfiler
             public static string RouteBasePath { get; set; }
 
             /// <summary>
-            /// Understands how to save and load MiniProfilers. Used for caching between when
-            /// a profiling session ends and results can be fetched to the client, and for showing shared, full-page results.
+            /// Understands how to save and load MiniProfilers for a very limited time. Used for caching between when
+            /// a profiling session ends and results can be fetched to the client.
             /// </summary>
             /// <remarks>
             /// The normal profiling session life-cycle is as follows:
@@ -96,22 +186,23 @@ namespace MvcMiniProfiler
             /// 2) profiler is started
             /// 3) normal page/controller/request execution
             /// 4) profiler is stopped
-            /// 5) profiler is cached with <see cref="Storage"/>'s implementation of <see cref="MvcMiniProfiler.Storage.IStorage.Save"/>
+            /// 5) profiler is cached with <see cref="ShortTermStorage"/>'s implementation of <see cref="Storage.IStorage.SaveMiniProfiler"/>
             /// 6) request ends
             /// 7) page is displayed and profiling results are ajax-fetched down, pulling cached results from 
-            ///    <see cref="Storage"/>'s implementation of <see cref="MvcMiniProfiler.Storage.IStorage.Load"/>
+            ///    <see cref="ShortTermStorage"/>'s implementation of <see cref="Storage.IStorage.LoadMiniProfiler"/>
             /// </remarks>
-            public static Storage.IStorage Storage { get; set; }
+            public static Storage.IStorage ShortTermStorage { get; set; }
+
+            /// <summary>
+            /// Understands how to save and load MiniProfilers for an extended (even indefinite) time, allowing results to be
+            /// shared with other developers or even tracked over time.
+            /// </summary>
+            public static Storage.IStorage LongTermStorage { get; set; }
 
             /// <summary>
             /// The formatter applied to the SQL being rendered (used only for UI)
             /// </summary>
             public static ISqlFormatter SqlFormatter { get; set; }
-
-            /// <summary>
-            /// Provides user identification for a given profiling request.
-            /// </summary>
-            public static IUserProvider UserProvider { get; set; }
 
             /// <summary>
             /// Assembly version of this dank MiniProfiler.
@@ -129,14 +220,32 @@ namespace MvcMiniProfiler
             public static Func<HttpRequest, MiniProfiler, bool> Results_Authorize { get; set; }
 
             /// <summary>
-            /// Make sure we can at least store profiler results to the http runtime cache.
+            /// Ensures that <see cref="ShortTermStorage"/> and <see cref="LongTermStorage"/> objects are initialized. Null values will
+            /// be initialized to use the default <see cref="Storage.HttpRuntimeCacheStorage"/> strategy.
             /// </summary>
-            internal static void EnsureStorageStrategy()
+            internal static void EnsureStorageStrategies()
             {
-                if (Storage == null)
+                if (ShortTermStorage == null)
                 {
-                    Storage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromDays(1));
+                    ShortTermStorage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromMinutes(20));
                 }
+
+                if (LongTermStorage == null)
+                {
+                    LongTermStorage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromDays(1));
+                }
+            }
+
+            private static void SetProfilerIntoRuntimeCache(string key, MiniProfiler prof, DateTime expires)
+            {
+                HttpRuntime.Cache.Add(
+                    key: key,
+                    value: prof,
+                    dependencies: null,
+                    absoluteExpiration: expires,
+                    slidingExpiration: System.Web.Caching.Cache.NoSlidingExpiration,
+                    priority: System.Web.Caching.CacheItemPriority.Low,
+                    onRemoveCallback: null);
             }
 
         }
