@@ -27,7 +27,7 @@ namespace MvcMiniProfiler.UI
            complete: function() {{
                jQuery(function() {{
                    MiniProfiler.init({{
-                       id: '{id}',
+                       ids: {ids},
                        path: '{path}',
                        version: '{version}',
                        renderPosition: '{position}',
@@ -43,11 +43,17 @@ namespace MvcMiniProfiler.UI
 
             if (profiler != null)
             {
+                // HACK: unviewed ids are added to this list during Storage.Save, but we know we haven't see the current one yet,
+                // so go ahead and add it to the end - it's usually the only id, but if there was a redirect somewhere, it'll be there, too
+                MiniProfiler.Settings.EnsureStorageStrategy();
+                var ids = MiniProfiler.Settings.Storage.GetUnviewedIds(profiler.User);
+                ids.Add(profiler.Id);
+
                 result = format.Format(new
                 {
                     path = VirtualPathUtility.ToAbsolute(MiniProfiler.Settings.RouteBasePath).EnsureTrailingSlash(),
                     version = MiniProfiler.Settings.Version,
-                    id = profiler.Id,
+                    ids = ids.ToJson(),
                     position = (position ?? MiniProfiler.Settings.PopupRenderPosition).ToString().ToLower(),
                     showTrivial = showTrivial ?? MiniProfiler.Settings.PopupShowTrivial ? "true" : "false",
                     showChildren = showTimeWithChildren ?? MiniProfiler.Settings.PopupShowTimeWithChildren ? "true" : "false",
@@ -180,11 +186,8 @@ namespace MvcMiniProfiler.UI
             if (!Guid.TryParse(context.Request.QueryString["id"], out id))
                 return isPopup ? NotFound(context) : NotFound(context, "text/plain", "No Guid id specified on the query string");
 
-            MiniProfiler.Settings.EnsureStorageStrategies();
-            var profiler = MiniProfiler.Settings.ShortTermStorage.LoadMiniProfiler(id);
-
-            if (profiler == null)
-                profiler = MiniProfiler.Settings.LongTermStorage.LoadMiniProfiler(id);
+            MiniProfiler.Settings.EnsureStorageStrategy();
+            var profiler = MiniProfiler.Settings.Storage.Load(id);
 
             if (profiler == null)
                 return isPopup ? NotFound(context) : NotFound(context, "text/plain", "No MiniProfiler results found with Id=" + id.ToString());
@@ -198,17 +201,7 @@ namespace MvcMiniProfiler.UI
                 return "Unauthorized";
             }
 
-            if (isPopup)
-            {
-                return ResultsJson(context, profiler);
-            }
-            else
-            {
-                // the first time we hit this route as a full results page, the prof won't be in long term cache, so put it there for sharing
-                // each subsequent time the full page is hit, just save again, so we act as a sliding expiration
-                MiniProfiler.Settings.LongTermStorage.SaveMiniProfiler(profiler.Id, profiler);
-                return ResultsFullPage(context, profiler);
-            }
+            return isPopup ? ResultsJson(context, profiler) : ResultsFullPage(context, profiler);
         }
 
         private static string ResultsJson(HttpContext context, MiniProfiler profiler)
