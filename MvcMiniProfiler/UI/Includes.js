@@ -207,7 +207,7 @@
                     // adapted from John Resig's color plugin: http://plugins.jquery.com/project/color
                     return Math.max(Math.min(parseInt((fx.pos * (originalRgb[i] - highlightRgb[i])) + highlightRgb[i]), 255), 0);
                 };
-
+            
             // we need to animate some other property to piggy-back on the step function, so I choose you, opacity!
             cell.css({ 'opacity': 1, 'background-color': highlightHex })
                 .animate({ 'opacity': 1 }, { duration: 2000, step: function(now, fx) {
@@ -323,23 +323,6 @@
                 }
             }
         });
-
-
-        // fetch results after ASP Ajax calls
-        if (typeof (Sys) != "undefined") {
-        // Get the instance of PageRequestManager.
-        var PageRequestManager = Sys.WebForms.PageRequestManager.getInstance();
-
-        PageRequestManager.add_endRequest(function (sender, args) {
-            if (args) {
-                var stringIds = args.get_response().getResponseHeader('X-MiniProfiler-Ids');
-                if (stringIds) {
-                    var ids = typeof JSON != 'undefined' ? JSON.parse(stringIds) : eval(stringIds);
-                    fetchResults(ids);
-                }
-            }
-        });
-        }
 
         // some elements want to be hidden on certain doc events
         bindDocumentEvents();
