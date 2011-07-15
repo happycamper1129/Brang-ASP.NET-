@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics;
+using System.Linq;
 using MvcMiniProfiler.Data;
 using System.Text.RegularExpressions;
 using System.Runtime.Serialization;
@@ -190,18 +192,30 @@ namespace MvcMiniProfiler
 
             var result = new List<SqlTimingParameter>();
 
-            foreach (DbParameter dbParameter in command.Parameters)
+            foreach (DbParameter p in command.Parameters)
             {
-                if (!string.IsNullOrWhiteSpace(dbParameter.ParameterName))
+                if (!string.IsNullOrWhiteSpace(p.ParameterName))
                 {
-                    var formattedParameterValue = GetFormattedParameterValue(dbParameter);
+                    string val = null;
+                    if (p.Value != DBNull.Value)
+                    {
+                        if (p.Value is DateTime)
+                        {
+                            val = ((DateTime)p.Value).ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                        }
+                        else
+                        {
+                            val = p.Value.ToString();
+                        }
+                    }
+
                     result.Add(new SqlTimingParameter
                     {
                         ParentSqlTimingId = Id,
-                        Name = dbParameter.ParameterName.Trim(),
-                        Value = formattedParameterValue,
-                        DbType = dbParameter.DbType.ToString(),
-                        Size = dbParameter.Size
+                        Name = p.ParameterName.Trim(),
+                        Value = val,
+                        DbType = p.DbType.ToString(),
+                        Size = p.Size
                     });
                 }
             }
@@ -209,17 +223,5 @@ namespace MvcMiniProfiler
             return result;
         }
 
-        private static string GetFormattedParameterValue(DbParameter dbParameter)
-        {
-            object rawValue = dbParameter.Value;
-            if (rawValue == null || rawValue == DBNull.Value)
-            {
-                return null;
-            }
-
-            return rawValue is DateTime
-                    ? ((DateTime)rawValue).ToString("s", System.Globalization.CultureInfo.InvariantCulture)
-                    : rawValue.ToString();
-        }
     }
 }
