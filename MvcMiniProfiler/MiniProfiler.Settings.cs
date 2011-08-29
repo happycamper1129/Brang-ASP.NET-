@@ -201,29 +201,12 @@ namespace MvcMiniProfiler
             /// <summary>
             /// Provides user identification for a given profiling request.
             /// </summary>
-            [Obsolete("Obselete, use WebRequestProfilerProvider.UserProvider")]
-            public static IUserProvider UserProvider
-            {
-                get
-                {
-                    return WebRequestProfilerProvider.Settings.UserProvider;
-                }
-                set
-                {
-                    WebRequestProfilerProvider.Settings.UserProvider = value;
-                }
-            }
+            public static IUserProvider UserProvider { get; set; }
 
             /// <summary>
             /// Assembly version of this dank MiniProfiler.
             /// </summary>
             public static string Version { get; private set; }
-
-            /// <summary>
-            /// The provider used to provider the current instance of a provider
-            /// This is also 
-            /// </summary>
-            public static IProfilerProvider ProfilerProvider { get; set; }
 
             /// <summary>
             /// A function that determines who can access the MiniProfiler results url.  It should return true when
@@ -243,14 +226,6 @@ namespace MvcMiniProfiler
                 if (Storage == null)
                 {
                     Storage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromDays(1));
-                }
-            }
-
-            internal static void EnsureProfilerProvider()
-            {
-                if (ProfilerProvider == null)
-                {
-                    ProfilerProvider = new WebRequestProfilerProvider();
                 }
             }
 

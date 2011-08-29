@@ -236,6 +236,12 @@ namespace MvcMiniProfiler
         {
         }
 
+        static MiniProfiler()
+        {
+            UI.MiniProfilerHandler.RegisterRoutes();
+        }
+
+
         internal IDisposable StepImpl(string name, ProfileLevel level = ProfileLevel.Info)
         {
             if (level > this.Level) return null;
@@ -316,13 +322,33 @@ namespace MvcMiniProfiler
         }
 
         /// <summary>
-        /// Starts a new MiniProfiler based on the current <see cref="IProfilerProvider"/>. This new profiler can be accessed by
+        /// Starts a new MiniProfiler for the current Request. This new profiler can be accessed by
         /// <see cref="MiniProfiler.Current"/>
         /// </summary>
         public static MiniProfiler Start(ProfileLevel level = ProfileLevel.Info)
         {
-            Settings.EnsureProfilerProvider();
-            return Settings.ProfilerProvider.Start(level);
+            var context = HttpContext.Current;
+            if (context == null) return null;
+
+            var url = context.Request.Url;
+            var path = context.Request.AppRelativeCurrentExecutionFilePath.Substring(1);
+
+            // don't profile /content or /scripts, either - happens in web.dev
+            foreach (var ignored in Settings.IgnoredPaths ?? new string[0])
+            {
+                if (path.ToUpperInvariant().Contains((ignored ?? "").ToUpperInvariant()))
+                    return null;
+            }
+
+            var result = new MiniProfiler(url.OriginalString, level);
+            Current = result;
+
+            // don't really want to pass in the context to MiniProfler's constructor or access it statically in there, either
+            result.User = (Settings.UserProvider ?? new IpAddressIdentity()).GetUser(context.Request);
+
+            result._isActive = true;
+
+            return result;
         }
 
         /// <summary>
@@ -334,8 +360,72 @@ namespace MvcMiniProfiler
         /// </param>
         public static void Stop(bool discardResults = false)
         {
-            Settings.EnsureProfilerProvider();
-            Settings.ProfilerProvider.Stop(discardResults);
+            var context = HttpContext.Current;
+            if (context == null)
+                return;
+
+            var current = Current;
+            if (current == null)
+                return;
+
+            // stop our timings - when this is false, we've already called .Stop before on this session
+            if (!current.StopImpl())
+                return;
+
+            current._isActive = false;
+
+            if (discardResults)
+            {
+                Current = null;
+                return;
+            }
+
+            var request = context.Request;
+            var response = context.Response;
+
+            // set the profiler name to Controller/Action or /url
+            EnsureName(current, request);
+
+            // because we fetch profiler results after the page loads, we have to put them somewhere in the meantime
+            Settings.EnsureStorageStrategy();
+            Settings.Storage.Save(current);
+
+            try
+            {
+                var arrayOfIds = Settings.Storage.GetUnviewedIds(current.User).ToJson();
+                // allow profiling of ajax requests
+                response.AppendHeader("X-MiniProfiler-Ids", arrayOfIds);
+            }
+            catch { } // headers blew up
+        }
+
+        /// <summary>
+        /// Makes sure 'profiler' has a Name, pulling it from route data or url.
+        /// </summary>
+        private static void EnsureName(MiniProfiler profiler, HttpRequest request)
+        {
+            // also set the profiler name to Controller/Action or /url
+            if (string.IsNullOrWhiteSpace(profiler.Name))
+            {
+                var rc = request.RequestContext;
+                RouteValueDictionary values;
+
+                if (rc != null && rc.RouteData != null && (values = rc.RouteData.Values).Count > 0)
+                {
+                    var controller = values["Controller"];
+                    var action = values["Action"];
+
+                    if (controller != null && action != null)
+                        profiler.Name = controller.ToString() + "/" + action.ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(profiler.Name))
+                {
+                    profiler.Name = request.Url.AbsolutePath ?? "";
+                    if (profiler.Name.Length > 50)
+                        profiler.Name = profiler.Name.Remove(50);
+                }
+            }
         }
 
         /// <summary>
@@ -370,11 +460,21 @@ namespace MvcMiniProfiler
         {
             get
             {
-                Settings.EnsureProfilerProvider();
-                return Settings.ProfilerProvider.GetCurrentProfiler();
+                var context = HttpContext.Current;
+                if (context == null) return null;
+
+                return context.Items[CacheKey] as MiniProfiler;
+            }
+            private set
+            {
+                var context = HttpContext.Current;
+                if (context == null) return;
+
+                context.Items[CacheKey] = value;
             }
         }
 
+        private const string CacheKey = ":mini-profiler:";
 
         /// <summary>
         /// Renders the current <see cref="MiniProfiler"/> to json.
