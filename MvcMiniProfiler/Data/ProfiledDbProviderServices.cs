@@ -1,12 +1,12 @@
 ﻿using System.Data.Common;
 
+#if ENTITY_FRAMEWORK
 namespace MvcMiniProfiler.Data
 {
     class ProfiledDbProviderServices : DbProviderServices
     {
         private DbProviderServices wrapped;
         private IDbProfiler profiler;
-
         public ProfiledDbProviderServices(DbProviderServices tail, IDbProfiler profiler)
         {
             this.wrapped = tail;
@@ -38,10 +38,10 @@ namespace MvcMiniProfiler.Data
 
         private static DbConnection GetRealConnection(DbConnection cnn)
         {
-            var profiled = cnn as ProfiledDbConnection;
-            if (profiled != null)
+            var real = cnn as ProfiledDbConnection;
+            if (real != null)
             {
-                cnn = profiled.WrappedConnection;
+                cnn = real.WrappedConnection;
             }
             return cnn;
         }
@@ -77,3 +77,4 @@ namespace MvcMiniProfiler.Data
         }
     }
 }
+#endif

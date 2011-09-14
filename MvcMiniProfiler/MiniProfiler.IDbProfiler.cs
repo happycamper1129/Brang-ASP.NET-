@@ -31,7 +31,6 @@ namespace MvcMiniProfiler
 
         bool _isActive;
         bool IDbProfiler.IsActive { get { return _isActive; } }
-        internal bool IsActive { set { _isActive = value; } }
  
     }
 }

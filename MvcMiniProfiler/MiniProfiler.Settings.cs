@@ -31,13 +31,7 @@ namespace MvcMiniProfiler
                     pair.PropertyInfo.SetValue(null, Convert.ChangeType(pair.DefaultValue.Value, pair.PropertyInfo.PropertyType), null);
                 }
 
-                // this assists in debug and is also good for prd, the version is a hash of the main assembly 
-
-                byte[] contents = System.IO.File.ReadAllBytes(typeof(Settings).Assembly.Location);
-                var md5 = System.Security.Cryptography.MD5.Create();
-                Guid hash = new Guid(md5.ComputeHash(contents));
-
-                Version = hash.ToString();
+                Version = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion;
 
                 typesToExclude = new HashSet<string>
                 {
@@ -160,6 +154,13 @@ namespace MvcMiniProfiler
             public static RenderPosition PopupRenderPosition { get; set; }
 
             /// <summary>
+            /// Determines if min-max, clear, etc are rendered; defaults to false.
+            /// For a per-page override you can use .RenderIncludes(showControls: true/false)
+            /// </summary>
+            [DefaultValue(false)]
+            public static bool ShowControls { get; set; }
+
+            /// <summary>
             /// By default, SqlTimings will grab a stack trace to help locate where queries are being executed.
             /// When this setting is true, no stack trace will be collected, possibly improving profiler performance.
             /// </summary>
@@ -207,29 +208,12 @@ namespace MvcMiniProfiler
             /// <summary>
             /// Provides user identification for a given profiling request.
             /// </summary>
-            [Obsolete("Obselete, use WebRequestProfilerProvider.UserProvider")]
-            public static IUserProvider UserProvider
-            {
-                get
-                {
-                    return WebRequestProfilerProvider.Settings.UserProvider;
-                }
-                set
-                {
-                    WebRequestProfilerProvider.Settings.UserProvider = value;
-                }
-            }
+            public static IUserProvider UserProvider { get; set; }
 
             /// <summary>
             /// Assembly version of this dank MiniProfiler.
             /// </summary>
             public static string Version { get; private set; }
-
-            /// <summary>
-            /// The provider used to provider the current instance of a provider
-            /// This is also 
-            /// </summary>
-            public static IProfilerProvider ProfilerProvider { get; set; }
 
             /// <summary>
             /// A function that determines who can access the MiniProfiler results url.  It should return true when
@@ -249,14 +233,6 @@ namespace MvcMiniProfiler
                 if (Storage == null)
                 {
                     Storage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromDays(1));
-                }
-            }
-
-            internal static void EnsureProfilerProvider()
-            {
-                if (ProfilerProvider == null)
-                {
-                    ProfilerProvider = new WebRequestProfilerProvider();
                 }
             }
 

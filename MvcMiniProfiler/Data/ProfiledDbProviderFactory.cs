@@ -7,7 +7,7 @@ namespace MvcMiniProfiler.Data
     /// <summary>
     /// Wrapper for a db provider factory to enable profiling
     /// </summary>
-    public class ProfiledDbProviderFactory : DbProviderFactory
+    public class ProfiledDbProviderFactory : DbProviderFactory, IServiceProvider
     {
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace MvcMiniProfiler.Data
         /// </summary>
         public override DbConnection CreateConnection()
         {
-            return new ProfiledDbConnection(tail.CreateConnection(), profiler);
+            return ProfiledDbConnection.Get(tail.CreateConnection(), profiler);
         }
         /// <summary>
         /// proxy
@@ -115,5 +115,24 @@ namespace MvcMiniProfiler.Data
             return tail.CreatePermission(state);
         }
 
+        /// <summary>
+        /// Extension mechanism for additional services;  
+        /// </summary>
+        /// <returns>requested service provider or null.</returns>
+        object IServiceProvider.GetService(Type serviceType)
+        {
+            IServiceProvider tailProvider = tail as IServiceProvider;
+            if (tailProvider == null) return null;
+            var svc = tailProvider.GetService(serviceType);
+            if (svc == null) return null;
+
+#if ENTITY_FRAMEWORK
+            if (serviceType == typeof(DbProviderServices))
+            {
+                svc = new ProfiledDbProviderServices((DbProviderServices)svc, profiler);
+            }
+#endif
+            return svc;
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if ENTITY_FRAMEWORK
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,7 +30,8 @@ namespace MvcMiniProfiler.Data
         /// <returns></returns>
         public System.Data.Common.DbConnection CreateConnection(string nameOrConnectionString)
         {
-            return new EFProfiledDbConnection(_wrapped.CreateConnection(nameOrConnectionString), MiniProfiler.Current);
+            return ProfiledDbConnection.Get(_wrapped.CreateConnection(nameOrConnectionString));
         }
     }
 }
+#endif
