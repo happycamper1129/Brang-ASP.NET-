@@ -8,6 +8,7 @@ using System.Data.Common;
 using SampleWeb.EFCodeFirst;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
+using MvcMiniProfiler.Data;
 namespace SampleWeb.Controllers
 {
     public class HomeController : BaseController
@@ -66,20 +67,14 @@ namespace SampleWeb.Controllers
             }
         }
 
+        public ActionResult XHTML()
+        {
+            return View();
+        }
+
         public ActionResult EFCodeFirst()
         {
             int count;
-
-            // this would usually go in Global.asax.cs in Application_Start
-            {
-                var factory = new SqlCeConnectionFactory("System.Data.SqlServerCe.4.0");
-                // for sql server you could do ... 
-                //var factory = new SqlConnectionFactory("Data Source=.;Initial Catalog=tempdb;Integrated Security=True");
-                var profiled = new MvcMiniProfiler.Data.ProfiledDbConnectionFactory(factory);
-                Database.DefaultConnectionFactory = profiled;
-                Database.SetInitializer<EFContext>(new DropCreateDatabaseIfModelChanges<EFContext>());
-            }
-            // end 
 
             EFContext context = null;
             using (MiniProfiler.Current.Step("EF Stuff"))

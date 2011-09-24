@@ -31,7 +31,13 @@ namespace MvcMiniProfiler
                     pair.PropertyInfo.SetValue(null, Convert.ChangeType(pair.DefaultValue.Value, pair.PropertyInfo.PropertyType), null);
                 }
 
-                Version = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion;
+                // this assists in debug and is also good for prd, the version is a hash of the main assembly 
+
+                byte[] contents = System.IO.File.ReadAllBytes(typeof(Settings).Assembly.Location);
+                var md5 = System.Security.Cryptography.MD5.Create();
+                Guid hash = new Guid(md5.ComputeHash(contents));
+
+                Version = hash.ToString();
 
                 typesToExclude = new HashSet<string>
                 {
@@ -208,12 +214,29 @@ namespace MvcMiniProfiler
             /// <summary>
             /// Provides user identification for a given profiling request.
             /// </summary>
-            public static IUserProvider UserProvider { get; set; }
+            [Obsolete("Obselete, use WebRequestProfilerProvider.UserProvider")]
+            public static IUserProvider UserProvider
+            {
+                get
+                {
+                    return WebRequestProfilerProvider.Settings.UserProvider;
+                }
+                set
+                {
+                    WebRequestProfilerProvider.Settings.UserProvider = value;
+                }
+            }
 
             /// <summary>
             /// Assembly version of this dank MiniProfiler.
             /// </summary>
             public static string Version { get; private set; }
+
+            /// <summary>
+            /// The provider used to provider the current instance of a provider
+            /// This is also 
+            /// </summary>
+            public static IProfilerProvider ProfilerProvider { get; set; }
 
             /// <summary>
             /// A function that determines who can access the MiniProfiler results url.  It should return true when
@@ -233,6 +256,14 @@ namespace MvcMiniProfiler
                 if (Storage == null)
                 {
                     Storage = new Storage.HttpRuntimeCacheStorage(TimeSpan.FromDays(1));
+                }
+            }
+
+            internal static void EnsureProfilerProvider()
+            {
+                if (ProfilerProvider == null)
+                {
+                    ProfilerProvider = new WebRequestProfilerProvider();
                 }
             }
 
