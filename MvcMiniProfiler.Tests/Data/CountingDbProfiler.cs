@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using MvcMiniProfiler.Data;
 using System.Data.Common;
 using System.Diagnostics;
 
-namespace MvcMiniProfiler.Tests.Helpers
+namespace MvcMiniProfiler.Tests.Data
 {
-    class TestDbProfiler : IDbProfiler
+    class CountingDbProfiler : IDbProfiler
     {
         Stopwatch watch = new Stopwatch();
 
@@ -59,7 +56,5 @@ namespace MvcMiniProfiler.Tests.Helpers
             get { return true; }
         }
 
-
-       
     }
 }
