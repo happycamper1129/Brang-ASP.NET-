@@ -9,6 +9,7 @@ using System.Reflection.Emit;
 
 namespace StackExchange.Profiling.Data
 {
+    [System.ComponentModel.DesignerCategory("")]
     public class ProfiledDbCommand : DbCommand, ICloneable
     {
         protected DbCommand _cmd;
@@ -249,6 +250,8 @@ namespace StackExchange.Profiling.Data
             _cmd = null;
             base.Dispose(disposing);
         }
+
+        public DbCommand InternalCommand { get { return _cmd; } }
 
 
         public ProfiledDbCommand Clone()
