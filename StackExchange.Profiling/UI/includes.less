@@ -50,54 +50,54 @@
 .profiler-result 
 {
  
-    .profiler-toggle-duration-with-children
+    .toggle-duration-with-children
     {
         float: right;
     }
     
-    table.profiler-client-timings
+    table.client-timings
     {
         margin-top: 10px;
     }
     
     font-family:@normalFonts;
 
-    .profiler-label {
+    .label {
         color:@textColor;
         overflow:hidden;
         text-overflow: ellipsis;
     }
 
-    .profiler-unit {
+    .unit {
         color:@mutedColor;
     }
 
-    .profiler-trivial {
+    .trivial {
         display:none;
         td, td * {
             color:@mutedColor !important;
         }
     }
 
-    pre, code, .profiler-number, .profiler-unit {
+    pre, code, .number, .unit {
         font-family:@codeFonts;
     }
 
-    .profiler-number {
+    .number {
         color:@numberColor;
     }
 
-    .profiler-info {
+    .info {
         text-align:right;
-        .profiler-name {
+        .name {
             float:left;
         }
-        .profiler-server-time {
+        .server-time {
             white-space:nowrap;
         }
     }
     
-    .profiler-timings {
+    .timings {
         th {
             background-color:#fff;
             color:@mutedColor;
@@ -106,25 +106,25 @@
         th, td {
             white-space:nowrap;
         }
-        .profiler-duration-with-children {
+        .duration-with-children {
             display:none;
         }
-        .profiler-duration {
-            .profiler-number;
+        .duration {
+            .number;
             text-align:right;
         }
-        .profiler-indent {
+        .indent {
             letter-spacing:4px;
         }
-        .profiler-queries-show {
-            .profiler-number, .profiler-unit {
+        .queries-show {
+            .number, .unit {
                 color:@anchorColor;
             }
         }
-        .profiler-queries-duration {
+        .queries-duration {
             padding-left:6px;
         }
-        .profiler-percent-in-sql {
+        .percent-in-sql {
             white-space:nowrap;
             text-align:right;
         }
@@ -151,7 +151,7 @@
     .profiler-queries {
         font-family:@normalFonts;
 
-        .profiler-stack-trace {
+        .stack-trace {
             margin-bottom:15px;
         }
         pre {
@@ -177,27 +177,27 @@
             }
         }
 
-        .profiler-odd td {
+        .odd td {
             background-color:#e5e5e5;
         }
 
-        .profiler-since-start, .profiler-duration {
+        .since-start, .duration {
             text-align:right;
         }
 
-        .profiler-info div {
+        .info div {
             text-align:right;
             margin-bottom:5px;
         }
         
-        .profiler-gap-info, .profiler-gap-info td { background-color: #ccc;}
-        .profiler-gap-info  {
-            .profiler-unit {color: #777;}
-            .profiler-info {text-align: right}
-            &.profiler-trivial-gaps {display: none}
+        .gap-info, .gap-info td { background-color: #ccc;}
+        .gap-info  {
+            .unit {color: #777;}
+            .info {text-align: right}
+            &.trivial-gaps {display: none}
          }
          
-         .profiler-trivial-gap-container { text-align: center;}
+         .trivial-gap-container { text-align: center;}
 
         // prettify colors
         .str{color:maroon}
@@ -213,15 +213,15 @@
         .dec{color:purple}
     }
 
-    .profiler-warning, .profiler-warning *, .profiler-warning .profiler-queries-show, .profiler-warning .profiler-queries-show .profiler-unit { // i'm no good at css
+    .warning, .warning *, .warning .queries-show, .warning .queries-show .unit { // i'm no good at css
         color:#f00;
         &:hover {
             color:#f00;
         }
     }
 
-    .profiler-nuclear {
-        .profiler-warning;
+    .nuclear {
+        .warning;
         font-weight:bold;
         padding-right:2px;
     }
@@ -236,7 +236,7 @@
 
     @radius:10px;
 
-    &.profiler-left {
+    &.left {
         left:0px;
 
         &.profiler-no-controls .profiler-result:last-child .profiler-button, .profiler-controls {
@@ -250,7 +250,7 @@
         }
     }
 
-    &.profiler-right {
+    &.right {
         right:0px;
 
         &.profiler-no-controls .profiler-result:last-child .profiler-button, .profiler-controls {
@@ -276,11 +276,11 @@
         &.profiler-button-active {
             background-color:maroon;
 
-            .profiler-number, .profiler-nuclear {
+            .number, .nuclear {
                 color:#fff;
                 font-weight:bold;
             }
-            .profiler-unit {
+            .unit {
                 color:#fff;
                 font-weight:normal;
             }
@@ -319,24 +319,24 @@
 
         .box-shadow(0px, 1px, 15px, #555);
 
-        .profiler-info {
+        .info {
             margin-bottom:3px;
             padding-bottom:2px;
             border-bottom:1px solid #ddd;
 
-            .profiler-name {
+            .name {
                 font-size:110%;
                 font-weight:bold;
-                .profiler-overall-duration {
+                .overall-duration {
                     display:none;
                 }
             }
-            .profiler-server-time {
+            .server-time {
                 font-size:95%;
             }
         }
 
-        .profiler-timings {
+        .timings {
 
             th, td {
                 padding-left:6px;
@@ -348,7 +348,7 @@
                 padding-bottom:3px;
             }
 
-            .profiler-label {
+            .label {
                 max-width:275px;
             }
         }
@@ -407,20 +407,20 @@
 
         .profiler-popup {
 
-            .profiler-info {
+            .info {
                 font-size: 25px;
                 border-bottom:1px solid @mutedColor;
                 padding-bottom:3px;
                 margin-bottom:25px;
 
-                .profiler-overall-duration {
+                .overall-duration {
                     padding-right:20px;
                     font-size:80%;
                     color:#888;
                 }
             }
 
-            .profiler-timings {
+            .timings {
                 td, th {
                     padding-left:8px;
                     padding-right:8px;
@@ -437,7 +437,7 @@
                     }
                 }
 
-                .profiler-label {
+                .label {
                     max-width:550px;
                 }
             }
@@ -459,7 +459,7 @@
                 text-align:left;
             }
 
-            .profiler-info div {
+            .info div {
                 text-align:right;
                 margin-bottom:5px;
             }
