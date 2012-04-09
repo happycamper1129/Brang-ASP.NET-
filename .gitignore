@@ -9,5 +9,3 @@ obj
 nuget.exe
 Ruby/lib/html
 Ruby/*.gem
-*.*~
-*.swp
