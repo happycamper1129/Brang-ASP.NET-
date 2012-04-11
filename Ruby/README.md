@@ -34,7 +34,7 @@ Using Sinatra:
 
 ## TODO: prior to release - pull requests welcome
 
-- Stack Traces for SQL called
+- Stack Traces for SQL called (added but mental, needs to be filtered to something usable) 
 - Decide if we hook up SQL at the driver level (eg mysql gem) or library level (eg active record) - my personal perference is to do driver level hooks (Sam)
 - Add automatic instrumentation for Rails (Controller times, Action times, Partial times, Layout times)
 - Grab / display the parameters of SQL executed for parameterized SQL 
