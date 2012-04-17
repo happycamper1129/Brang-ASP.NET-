@@ -28,7 +28,8 @@ module Rack
       {
         :auto_inject => true, # automatically inject on every html page
         :base_url_path => "/mini-profiler-resources/",
-        :authorize_cb => lambda {|env| true} # callback returns true if this request is authorized to profile
+        :authorize_cb => lambda {|env| true}, # callback returns true if this request is authorized to profile
+        :position => 'left'  # Where it is displayed
       }
     end
 
@@ -152,8 +153,12 @@ module Rack
 			# inject headers, script
 			if status == 200
 				add_to_timer_cache(current['page_struct'])
+        
 				# inject header
-				headers['X-MiniProfilerID'] = current['page_struct']["Id"] if headers.is_a? Hash
+        if headers.is_a? Hash
+				  headers['X-MiniProfilerID'] = current['page_struct']["Id"] 
+          headers['X-MiniProfiler-Ids'] = "[\"#{current['page_struct']['Id']}\"]"
+        end
 
 				# inject script
 				if current['inject_js'] \
@@ -179,7 +184,7 @@ module Rack
 			ids = "[\"%s\"]" % current['page_struct']['Id'].to_s
 			path = @options[:base_url_path]
 			version = MiniProfiler::VERSION
-			position = 'left'
+			position = @options[:position]
 			showTrivial = false
 			showChildren = false
 			maxTracesToShow = 10
