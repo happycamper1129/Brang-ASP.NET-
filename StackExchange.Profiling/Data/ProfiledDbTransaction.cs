@@ -24,7 +24,7 @@ namespace StackExchange.Profiling.Data
             get { return _conn; }
         }
 
-        public DbTransaction WrappedTransaction
+        internal DbTransaction WrappedTransaction
         {
             get { return _trans; }
         }
