@@ -4,8 +4,8 @@ module Rack
 
       EXPIRE_SECONDS = 60 * 60 * 24
      
-      def initialize(args = {})
-        require 'redis'
+      def initialize(args)
+        args ||= {}
         @prefix = args[:prefix] || 'MPRedisStore'
       end
 
