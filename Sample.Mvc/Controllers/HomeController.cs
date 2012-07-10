@@ -1,12 +1,14 @@
 ﻿using System;
-using System.Data.Common;
-using System.Linq;
-using System.Threading;
 using System.Web.Mvc;
-using Dapper;
-using SampleWeb.EFCodeFirst;
 using StackExchange.Profiling;
-
+using System.Threading;
+using Dapper;
+using System.Linq;
+using System.Data.Common;
+using SampleWeb.EFCodeFirst;
+using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
+using StackExchange.Profiling.Data;
 namespace SampleWeb.Controllers
 {
     public class HomeController : BaseController
@@ -116,21 +118,7 @@ namespace SampleWeb.Controllers
                 }
             }
 
-            return Content("EF Code First complete - count: " + count);
-        }
-
-        public ActionResult DuplicatedQueries()
-        {
-            using (var conn = GetConnection())
-            {
-                long total = 0;
-
-                for (int i = 0; i < 20; i++)
-                {
-                    total += conn.Query<long>("select count(1) from RouteHits where HitCount = @i", new { i }).First();
-                }
-                return Content("Duplicated Queries (N+1) completed");
-            }
+            return Json(count, JsonRequestBehavior.AllowGet);
         }
 
         public ActionResult MassiveNesting()
@@ -140,7 +128,7 @@ namespace SampleWeb.Controllers
             {
                 RecursiveMethod(ref i, conn, MiniProfiler.Current);
             }
-            return Content("Massive Nesting completed");
+            return Content("MassiveNesting completed");
         }
 
         public ActionResult MassiveNesting2()
@@ -149,7 +137,21 @@ namespace SampleWeb.Controllers
             {
                 MassiveNesting();
             }
-            return Content("Massive Nesting 2 completed");
+            return Content("MassiveNesting2 completed");
+        }
+
+        public ActionResult Duplicated()
+        {
+            using (var conn = GetConnection())
+            {
+                long total = 0;
+
+                for (int i = 0; i < 20; i++)
+                {
+                    total += conn.Query<long>("select count(1) from RouteHits where HitCount = @i", new { i }).First();
+                }
+                return Content("Duplicate queries completed");
+            }
         }
 
         private void RecursiveMethod(ref int i, DbConnection conn, MiniProfiler profiler)
@@ -249,15 +251,6 @@ order  by RouteName");
         {
             public string RouteName { get; set; }
             public Int64 HitCount { get; set; }
-        }
-
-        public ActionResult ParameterizedSqlWithEnums()
-        {
-            using (var conn = GetConnection())
-            {
-                var shouldBeOne = conn.Query<Int64>("select @OK = 200", new { System.Net.HttpStatusCode.OK }).Single();
-                return Content("Parameterized SQL with Enums completed: " + shouldBeOne);
-            }
         }
     }
 }

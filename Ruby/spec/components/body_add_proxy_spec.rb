@@ -13,10 +13,6 @@ describe Rack::MiniProfiler::BodyAddProxy do
       @proxy.should expand_each_to %w(a b c d)
     end
 
-    it 'has a correct value in to_str' do
-      @proxy.to_str.should == "abcd"
-    end
-
     describe 'delegation' do
       it 'delegates respond to <<' do
         @proxy.respond_to?('<<').should be_true
@@ -29,6 +25,7 @@ describe Rack::MiniProfiler::BodyAddProxy do
       it 'delegates method_missing' do
         @proxy.first.should == 'a'
       end
+
     end
 
   end
@@ -64,10 +61,6 @@ describe Rack::MiniProfiler::BodyAddProxy do
     it 'contains the appended value' do
       @proxy.should expand_each_to %w(john paul george ringo)
     end
-
-    it 'has a correct value in to_str' do
-      @proxy.to_str.should == "johnpaulgeorgeringo"
-    end    
 
     describe 'delegation' do
       it 'delegates respond to fake_method' do

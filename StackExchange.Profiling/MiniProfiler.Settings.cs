@@ -46,31 +46,10 @@ namespace StackExchange.Profiling
 
                 try
                 {
-                    List<string> files = new List<string>();
-                    files.Add(location);
-
-                    string customUITemplatesPath = HttpContext.Current.Server.MapPath(MiniProfiler.Settings.CustomUITemplates);
-
-                    if (System.IO.Directory.Exists(customUITemplatesPath))
-                    {
-                        files.AddRange(System.IO.Directory.EnumerateFiles(customUITemplatesPath));
-                    }
-
+                    // sha256 is FIPS BABY - FIPS 
+                    byte[] contents = System.IO.File.ReadAllBytes(location);
                     using (var sha256 = System.Security.Cryptography.SHA256.Create())
-                    {
-                        byte[] hash = new byte[sha256.HashSize / 8];
-                        foreach (string file in files)
-                        {
-                            // sha256 is FIPS BABY - FIPS 
-                            byte[] contents = System.IO.File.ReadAllBytes(file);
-                            byte[] hashfile = sha256.ComputeHash(contents);
-                            for (int i = 0; i < (sha256.HashSize / 8); i++)
-                            {
-                                hash[i] = (byte)(hashfile[i] ^ hash[i]);
-                            }
-                        }
-                        Version = System.Convert.ToBase64String(hash);
-                    }
+                        Version = System.Convert.ToBase64String(sha256.ComputeHash(contents));
                 }
                 catch
                 {
@@ -216,12 +195,6 @@ namespace StackExchange.Profiling
             [DefaultValue(false)]
             public static bool ShowControls { get; set; }
 
-            /// Determines if Miniprofiler relies on jQuery already loaded on the page; defaults to false.
-            /// For a per-page override you can use .RenderIncludes(useExistingjQuery: true/false)
-            /// </summary>
-            [DefaultValue(false)]
-            public static bool UseExistingjQuery { get; set; }
-
             /// <summary>
             /// By default, SqlTimings will grab a stack trace to help locate where queries are being executed.
             /// When this setting is true, no stack trace will be collected, possibly improving profiler performance.
@@ -244,15 +217,6 @@ namespace StackExchange.Profiling
             /// </summary>
             [DefaultValue("~/mini-profiler-resources")]
             public static string RouteBasePath { get; set; }
-
-            /// <summary>
-            /// The path where custom ui elements are stored.
-            /// If the custom file doesn't exist, the standard resource is used.
-            /// This setting should be in APP RELATIVE FORM, e.g. "~/App_Data/MiniProfilerUI"
-            /// </summary>
-            /// <remarks>A web server restart is required to reload new files.</remarks>
-            [DefaultValue("~/App_Data/MiniProfilerUI")]
-            public static string CustomUITemplates { get; set; }
 
             /// <summary>
             /// Maximum payload size for json responses in bytes defaults to 2097152 characters, which is equivalent to 4 MB of Unicode string data.

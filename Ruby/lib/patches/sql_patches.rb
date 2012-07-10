@@ -7,6 +7,7 @@ module SqlPatches
 end
 
 if SqlPatches.class_exists? "Sequel::Database" then
+	puts "Patching Sequel"
 	module Sequel
 		class Database
 			alias_method :log_duration_original, :log_duration
@@ -37,16 +38,8 @@ module Rack
         sql, name, binds = args
         t0 = Time.now
         rval = log_without_miniprofiler(*args, &block)
-
-        # Get our MP Instance
-        instance = ::Rack::MiniProfiler.instance
-        return rval unless instance
-
-        # Don't log schema queries if the option is set
-        return rval if instance.config.skip_schema_queries and name =~ /SCHEMA/
-
-        elapsed_time = ((Time.now - t0).to_f * 1000).round(1)
-        instance.record_sql(sql, elapsed_time)
+        elapsed_time = ((Time.now - t0).to_f * 1000).to_i
+        ::Rack::MiniProfiler.instance.record_sql(sql, elapsed_time) if ::Rack::MiniProfiler.instance
         rval
       end
     end
@@ -59,7 +52,14 @@ module Rack
   end
 
   if defined?(::Rails)
-    insert_instrumentation
+    if ::Rails::VERSION::MAJOR.to_i == 3
+    # in theory this is the right thing to do for rails 3 ... but it seems to work anyway
+    #Rails.configuration.after_initialize do
+        insert_instrumentation
+    #end
+    else
+      insert_instrumentation
+    end
   end
 end
 

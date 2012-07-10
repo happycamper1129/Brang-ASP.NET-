@@ -3,61 +3,68 @@ require 'rack-mini-profiler'
 
 describe Rack::MiniProfiler::SqlTimerStruct do
 
-  describe 'valid sql timer' do
+  before do
+    @sql = Rack::MiniProfiler::SqlTimerStruct.new("SELECT * FROM users", 200, Rack::MiniProfiler::PageStruct.new({}))
+  end
+
+  it 'allows us to set any attribute we want' do
+    @sql['Hello'] = 'World'
+    @sql['Hello'].should == 'World'
+  end
+
+  it 'has an ExecuteType' do
+    @sql['ExecuteType'].should_not be_nil
+  end
+
+  it 'has a FormattedCommandString' do
+    @sql['FormattedCommandString'].should_not be_nil
+  end
+
+  it 'has a StackTraceSnippet' do
+    @sql['StackTraceSnippet'].should_not be_nil
+  end  
+
+  it 'has a StartMilliseconds' do
+    @sql['StartMilliseconds'].should_not be_nil
+  end   
+
+  it 'has a DurationMilliseconds' do
+    @sql['DurationMilliseconds'].should_not be_nil
+  end 
+
+  it 'has a IsDuplicate' do
+    @sql['IsDuplicate'].should_not be_nil
+  end   
+
+  it 'allows us to set an attribute' do
+    @sql['Hello'] = 'World'
+    @sql['Hello'].should == 'World'
+  end
+
+  describe 'to_json' do
     before do
-      @sql = Rack::MiniProfiler::SqlTimerStruct.new("SELECT * FROM users", 200, Rack::MiniProfiler::PageTimerStruct.new({}))
+      @json = @sql.to_json
     end
 
-    it 'has an ExecuteType' do
-      @sql['ExecuteType'].should_not be_nil
-    end
-
-    it 'has a FormattedCommandString' do
-      @sql['FormattedCommandString'].should_not be_nil
-    end
-
-    it 'has a StackTraceSnippet' do
-      @sql['StackTraceSnippet'].should_not be_nil
+    it 'produces JSON' do
+      @json.should_not be_nil
     end  
 
-    it 'has a StartMilliseconds' do
-      @sql['StartMilliseconds'].should_not be_nil
-    end   
+    describe 'deserialized' do
+      before do
+        @deserialized = ::JSON.parse(@json)
+      end
 
-    it 'has a DurationMilliseconds' do
-      @sql['DurationMilliseconds'].should_not be_nil
-    end 
+      it 'produces a hash' do
+        @deserialized.is_a?(Hash).should be_true
+      end
 
-    it 'has a IsDuplicate' do
-      @sql['IsDuplicate'].should_not be_nil
-    end       
+      it 'has a ExecuteType element' do
+        @deserialized['ExecuteType'].should_not be_nil
+      end
+    end
+
   end
-
-
   
-  describe 'backtrace' do
-    it 'has a snippet' do
-      sql = Rack::MiniProfiler::SqlTimerStruct.new("SELECT * FROM users", 200, Rack::MiniProfiler::PageTimerStruct.new({}))
-      sql['StackTraceSnippet'].should_not be nil
-    end
-
-    it 'includes rspec in the trace (default is no filter)' do
-      sql = Rack::MiniProfiler::SqlTimerStruct.new("SELECT * FROM users", 200, Rack::MiniProfiler::PageTimerStruct.new({}))
-      sql['StackTraceSnippet'].should match /rspec/
-    end
-
-    it "doesn't include rspec if we filter for only app" do
-      Rack::MiniProfiler.config.backtrace_filter = /\/app/
-      sql = Rack::MiniProfiler::SqlTimerStruct.new("SELECT * FROM users", 200, Rack::MiniProfiler::PageTimerStruct.new({}))
-      sql['StackTraceSnippet'].should_not match /rspec/
-    end
-
-    it "includes rspec if we filter for it" do
-      Rack::MiniProfiler.config.backtrace_filter = /\/(app|rspec)/
-      sql = Rack::MiniProfiler::SqlTimerStruct.new("SELECT * FROM users", 200, Rack::MiniProfiler::PageTimerStruct.new({}))
-      sql['StackTraceSnippet'].should match /rspec/
-    end
-
-  end
 
 end
