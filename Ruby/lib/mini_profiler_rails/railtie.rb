@@ -1,5 +1,4 @@
 module MiniProfilerRails
-
   class Railtie < ::Rails::Railtie
 
     initializer "rack_mini_profiler.configure_rails_initialization" do |app|
@@ -39,44 +38,8 @@ module MiniProfilerRails
       ::Rack::MiniProfiler.profile_method(ActionController::Base, :process) {|action| "Executing action: #{action}"}
       ::Rack::MiniProfiler.profile_method(ActionView::Template, :render) {|x,y| "Rendering: #{@virtual_path}"}
 
+
     end
-
-    # TODO: Implement something better here
-    # config.after_initialize do 
-    #   
-    #   class ::ActionView::Helpers::AssetTagHelper::JavascriptIncludeTag 
-    #     alias_method :asset_tag_orig, :asset_tag
-    #     def asset_tag(source,options)
-    #       current = Rack::MiniProfiler.current 
-    #       return asset_tag_orig(source,options) unless current 
-    #       wrapped = ""
-    #       unless current.mpt_init
-    #         current.mpt_init = true
-    #         wrapped << Rack::MiniProfiler::ClientTimerStruct.init_instrumentation 
-    #       end
-    #       name = source.split('/')[-1]
-    #       wrapped << Rack::MiniProfiler::ClientTimerStruct.instrument(name, asset_tag_orig(source,options)).html_safe
-    #       wrapped
-    #     end
-    #   end
-
-    #   class ::ActionView::Helpers::AssetTagHelper::StylesheetIncludeTag  
-    #     alias_method :asset_tag_orig, :asset_tag
-    #     def asset_tag(source,options)
-    #       current = Rack::MiniProfiler.current 
-    #       return asset_tag_orig(source,options) unless current 
-    #       wrapped = ""
-    #       unless current.mpt_init
-    #         current.mpt_init = true
-    #         wrapped << Rack::MiniProfiler::ClientTimerStruct.init_instrumentation 
-    #       end
-    #       name = source.split('/')[-1]
-    #       wrapped << Rack::MiniProfiler::ClientTimerStruct.instrument(name, asset_tag_orig(source,options)).html_safe
-    #       wrapped
-    #     end
-    #   end
-
-    # end
 
   end
 end

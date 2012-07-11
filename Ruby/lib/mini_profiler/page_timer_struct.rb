@@ -35,17 +35,13 @@ module Rack
       def duration_ms
         @attributes['Root']['DurationMilliseconds']
       end
-
-      def root
-        @attributes['Root']
-      end
       
       def to_json(*a)
         attribs = @attributes.merge(
           "Started" => '/Date(%d)/' % @attributes['Started'], 
           "DurationMilliseconds" => @attributes['Root']['DurationMilliseconds']
         )        
-        ::JSON.generate(attribs, :max_nesting => 100)
+        ::JSON.generate(attribs, a[0])
       end
     end
     

@@ -86,8 +86,9 @@ describe Rack::MiniProfiler::RequestTimerStruct do
     describe 'add children' do
 
       before do
-        @child = @request.add_child('child')
+        @child = Rack::MiniProfiler::RequestTimerStruct.new('child', new_page)
         @child.record_time(1111)        
+        @request.add_child(@child)
       end
 
       it 'has a IsRoot value of false' do
