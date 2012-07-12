@@ -1,23 +1,31 @@
 # rack-mini-profiler
 
-Middleware that displays speed badge for every html page.
+Middleware that displays speed badge for every html page. Designed to work both in production and in development.
 
-## What does it do
-
-MiniProfiler keeps you aware of your site's performance as you are developing it.
-It does this by....
-
-`env['profiler.mini']` is the profiler 
-
-## Using mini-profiler in your app
+## Using rack-mini-profiler in your app
 
 Install/add to Gemfile
 
 ```ruby
 gem 'rack-mini-profiler'
 ```
+Using Rails:
 
-Add it to your middleware stack:
+All you have to do is include the Gem and you're good to go in development.
+
+rack-mini-profiler is designed with production profiling in mind. To enable that just run `Rack::MiniProfiler.authorize_request` once you know a request is allowed to profile.
+
+For example: 
+
+```ruby
+# A hook in your ApplicationController
+def authorize
+  if current_user.is_admin? 
+    Rack::MiniProfiler.authorize_request
+  end
+end
+````
+
 
 Using Builder:
 
@@ -48,16 +56,24 @@ $ rake spec
 
 Additionally you can also run `autotest` if you like.
 
+## Configuration Options
 
-## TODO: prior to release - pull requests welcome
+You can set configuration options using the configuration accessor on Rack::MiniProfiler:
 
-- Stack Traces for SQL called (added but mental, needs to be filtered to something usable) 
-- Decide if we hook up SQL at the driver level (eg mysql gem) or library level (eg active record) - my personal perference is to do driver level hooks (Sam)
-- Add automatic instrumentation for Rails (Controller times, Action times, Partial times, Layout times)
-- Grab / display the parameters of SQL executed for parameterized SQL 
-- Beef up the documentation 
-- Auto-wire-up rails middleware 
-- Review our API and ensure it is trivial
-- Refactor big file into an organised structure, clean up namespacing 
-- Add tests 
+```
+# Have Mini Profiler show up on the right
+Rack::MiniProfiler.config.position = 'right'
+```
+
+In a Rails app, this can be done conveniently in an initializer such as config/initializers/mini_profiler.rb.
+
+## Available Options
+
+* pre_authorize_cb - A lambda callback you can set to determine whether or not mini_profiler should be visible on a given request. Default in a Rails environment is only on in development mode. If in a Rack app, the default is always on.
+* position - Can either be 'right' or 'left'. Default is 'left'.
+* skip_schema_queries - Whether or not you want to log the queries about the schema of your tables. Default is 'false', 'true' in rails development.
+
+## Special query strings 
+
+If you include the query string `pp=help` at the end of your request you will see the various option you have. You can use these options to extend or contract the amount of diagnostics rack-mini-profiler gathers. 
 

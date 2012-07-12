@@ -1,33 +1,47 @@
+require 'mini_profiler/timer_struct'
+
 module Rack
   class MiniProfiler
 
     # Timing system for a SQL query
-    class SqlTimerStruct
-      def initialize(query, duration_ms, page)
-        @attributes = {
-          "ExecuteType" => 3, # TODO
-          "FormattedCommandString" => query,
-          "StackTraceSnippet" => Kernel.caller.join("\n"), # TODO
-          "StartMilliseconds" => (Time.now.to_f * 1000).to_i - page['Started'],
-          "DurationMilliseconds" => duration_ms,
-          "FirstFetchDurationMilliseconds" => 0,
-          "Parameters" => nil,
-          "ParentTimingId" => nil,
-          "IsDuplicate" => false
-        }
+    class SqlTimerStruct < TimerStruct
+      def initialize(query, duration_ms, page, parent, skip_backtrace = false, full_backtrace = false)
+
+        stack_trace = nil 
+        unless skip_backtrace 
+          # Allow us to filter the stack trace
+          stack_trace = ""
+           # Clean up the stack trace if there are options to do so
+          Kernel.caller.each do |ln|
+            ln.gsub!(Rack::MiniProfiler.config.backtrace_remove, '') if Rack::MiniProfiler.config.backtrace_remove and !full_backtrace
+            if full_backtrace or Rack::MiniProfiler.config.backtrace_filter.nil? or ln =~ Rack::MiniProfiler.config.backtrace_filter
+              stack_trace << ln << "\n" 
+            end
+          end
+        end
+
+        @parent = parent
+        @page = page
+
+        super("ExecuteType" => 3, # TODO
+              "FormattedCommandString" => query,
+              "StackTraceSnippet" => stack_trace, 
+              "StartMilliseconds" => ((Time.now.to_f * 1000).to_i - page['Started']) - duration_ms,
+              "DurationMilliseconds" => duration_ms,
+              "FirstFetchDurationMilliseconds" => duration_ms,
+              "Parameters" => nil,
+              "ParentTimingId" => nil,
+              "IsDuplicate" => false)
       end
 
-      def to_json(*a)
-        ::JSON.generate(@attributes, a[0])
+      def report_reader_duration(elapsed_ms)
+        return if @reported
+        @reported = true
+        self["DurationMilliseconds"] += elapsed_ms
+        @parent["SqlTimingsDurationMilliseconds"] += elapsed_ms
+        @page["DurationMillisecondsInSql"] += elapsed_ms
       end
 
-      def []=(name, val)
-        @attributes[name] = val
-      end
-
-      def [](name)
-        @attributes[name]
-      end
     end
 
   end

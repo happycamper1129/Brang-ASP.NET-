@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Web.Mvc;
-using StackExchange.Profiling;
-using System.Threading;
-using Dapper;
-using System.Linq;
 using System.Data.Common;
+using System.Linq;
+using System.Threading;
+using System.Web.Mvc;
+using Dapper;
 using SampleWeb.EFCodeFirst;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using StackExchange.Profiling.Data;
+using StackExchange.Profiling;
+
 namespace SampleWeb.Controllers
 {
     public class HomeController : BaseController
@@ -118,29 +116,10 @@ namespace SampleWeb.Controllers
                 }
             }
 
-            return Json(count, JsonRequestBehavior.AllowGet);
+            return Content("EF Code First complete - count: " + count);
         }
 
-        public ActionResult MassiveNesting()
-        {
-            var i = 0;
-            using (var conn = GetConnection())
-            {
-                RecursiveMethod(ref i, conn, MiniProfiler.Current);
-            }
-            return Content("MassiveNesting completed");
-        }
-
-        public ActionResult MassiveNesting2()
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                MassiveNesting();
-            }
-            return Content("MassiveNesting2 completed");
-        }
-
-        public ActionResult Duplicated()
+        public ActionResult DuplicatedQueries()
         {
             using (var conn = GetConnection())
             {
@@ -150,8 +129,27 @@ namespace SampleWeb.Controllers
                 {
                     total += conn.Query<long>("select count(1) from RouteHits where HitCount = @i", new { i }).First();
                 }
-                return Content("Duplicate queries completed");
+                return Content("Duplicated Queries (N+1) completed");
             }
+        }
+
+        public ActionResult MassiveNesting()
+        {
+            var i = 0;
+            using (var conn = GetConnection())
+            {
+                RecursiveMethod(ref i, conn, MiniProfiler.Current);
+            }
+            return Content("Massive Nesting completed");
+        }
+
+        public ActionResult MassiveNesting2()
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                MassiveNesting();
+            }
+            return Content("Massive Nesting 2 completed");
         }
 
         private void RecursiveMethod(ref int i, DbConnection conn, MiniProfiler profiler)
@@ -251,6 +249,15 @@ order  by RouteName");
         {
             public string RouteName { get; set; }
             public Int64 HitCount { get; set; }
+        }
+
+        public ActionResult ParameterizedSqlWithEnums()
+        {
+            using (var conn = GetConnection())
+            {
+                var shouldBeOne = conn.Query<Int64>("select @OK = 200", new { System.Net.HttpStatusCode.OK }).Single();
+                return Content("Parameterized SQL with Enums completed: " + shouldBeOne);
+            }
         }
     }
 }

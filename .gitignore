@@ -12,3 +12,5 @@ Ruby/*.gem
 *.*~
 *.swp
 .DS_Store
+tmp
+*~

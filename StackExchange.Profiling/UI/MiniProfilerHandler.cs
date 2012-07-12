@@ -7,6 +7,7 @@ using System.Linq;
 
 using StackExchange.Profiling.Helpers;
 using System.Text;
+using System.Collections.Concurrent;
 
 namespace StackExchange.Profiling.UI
 {
@@ -15,67 +16,9 @@ namespace StackExchange.Profiling.UI
     /// </summary>
     public class MiniProfilerHandler : IRouteHandler, IHttpHandler
     {
-        internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool? showTrivial = null, bool? showTimeWithChildren = null, int? maxTracesToShow = null, bool? showControls = null)
+        internal static HtmlString RenderIncludes(MiniProfiler profiler, RenderPosition? position = null, bool? showTrivial = null, bool? showTimeWithChildren = null, int? maxTracesToShow = null, bool? showControls = null, bool? useExistingjQuery = null)
         {
-            const string format =
-@"<script type=""text/javascript"">    
-    (function(){{
-        var init = function() {{        
-                var load = function(s,f){{
-                    var sc = document.createElement(""script"");
-                    sc.async = ""async"";
-                    sc.type = ""text/javascript"";
-                    sc.src = s;
-                    var l = false;
-                    sc.onload = sc.onreadystatechange  = function(_, abort) {{
-                        if (!l && (!sc.readyState || /loaded|complete/.test(sc.readyState))) {{
-                            if (!abort){{l=true; f();}}
-                        }}
-                    }};
-
-                    document.getElementsByTagName('head')[0].appendChild(sc);
-                }};                
-                
-                var initMp = function(){{
-                    load(""{path}includes.js?v={version}"",function(){{
-                        MiniProfiler.init({{
-                            ids: {ids},
-                            path: '{path}',
-                            version: '{version}',
-                            renderPosition: '{position}',
-                            showTrivial: {showTrivial},
-                            showChildrenTime: {showChildren},
-                            maxTracesToShow: {maxTracesToShow},
-                            showControls: {showControls},
-                            currentId: '{currentId}',
-                            authorized: {authorized}
-                        }});
-                    }});
-                }};
-
-                 load('{path}jquery.1.7.1.js?v={version}', initMp);
-                
-        }};
-
-        var w = 0;        
-        var f = false;
-        var deferInit = function(){{ 
-            if (f) return;
-            if (window.performance && window.performance.timing && window.performance.timing.loadEventEnd == 0 && w < 10000){{
-                setTimeout(deferInit, 100);
-                w += 100;
-            }} else {{
-                f = true;
-                init();
-            }}
-        }};
-        if (document.addEventListener) {{
-            document.addEventListener('DOMContentLoaded',deferInit);
-        }}
-        var o = window.onload;
-        window.onload = function(){{if(o)o; deferInit()}};
-    }})();
-</script>";
+            string format = GetResource("include.partial.html");
 
             var result = "";
 
@@ -111,7 +54,8 @@ namespace StackExchange.Profiling.UI
                     maxTracesToShow = maxTracesToShow ?? MiniProfiler.Settings.PopupMaxTracesToShow,
                     showControls = showControls ?? MiniProfiler.Settings.ShowControls ? "true" : "false",
                     currentId = profiler.Id,
-                    authorized = authorized ? "true" : "false"
+                    authorized = authorized ? "true" : "false",
+                    useExistingjQuery = useExistingjQuery ?? MiniProfiler.Settings.UseExistingjQuery ? "true" : "false"
                 });
                 
             }
@@ -230,7 +174,17 @@ namespace StackExchange.Profiling.UI
                     profiler.DurationMilliseconds,
                     profiler.DurationMillisecondsInSql,
                     profiler.ClientTimings,
-                    profiler.Started
+                    profiler.Started,
+                    profiler.ExecutedNonQueries,
+                    profiler.ExecutedReaders,
+                    profiler.ExecutedScalars,
+                    profiler.HasAllTrivialTimings,
+                    profiler.HasDuplicateSqlTimings,
+                    profiler.HasSqlTimings,
+                    profiler.HasTrivialTimings,
+                    profiler.HasUserViewed,
+                    profiler.MachineName,
+                    profiler.User
                 };
             }
             
@@ -384,17 +338,17 @@ namespace StackExchange.Profiling.UI
         private static string ResultsFullPage(HttpContext context, MiniProfiler profiler)
         {
             context.Response.ContentType = "text/html";
-            return new StringBuilder()
-                .AppendLine("<html><head>")
-                .AppendFormat("<title>{0} ({1} ms) - StackExchange.Profiling Results</title>", profiler.Name, profiler.DurationMilliseconds)
-                .AppendLine()
-                .AppendLine("<script type='text/javascript' src='" +  VirtualPathUtility.ToAbsolute(MiniProfiler.Settings.RouteBasePath).EnsureTrailingSlash() + "jquery.1.7.1.js?v=" + MiniProfiler.Settings.Version + "'></script>")
-                .Append("<script type='text/javascript'> var profiler = ")
-                .Append(MiniProfiler.ToJson(profiler))
-                .AppendLine(";</script>")
-                .Append(RenderIncludes(profiler)) // figure out how to better pass display options
-                .AppendLine("</head><body><div class='profiler-result-full'></div></body></html>")
-                .ToString();
+
+            var template = GetResource("share.html");
+            return template.Format(new 
+            {
+                name = profiler.Name,
+                duration = profiler.DurationMilliseconds.ToString(),
+                path = VirtualPathUtility.ToAbsolute(MiniProfiler.Settings.RouteBasePath).EnsureTrailingSlash(),
+                json = MiniProfiler.ToJson(profiler),
+                includes = RenderIncludes(profiler),
+                version = MiniProfiler.Settings.Version
+            });
         }
 
         private static bool bypassLocalLoad = false; 
@@ -424,12 +378,21 @@ namespace StackExchange.Profiling.UI
 
             if (!_ResourceCache.TryGetValue(filename, out result))
             {
-                using (var stream = typeof(MiniProfilerHandler).Assembly.GetManifestResourceStream("StackExchange.Profiling.UI." + filename))
-                using (var reader = new StreamReader(stream))
-                {
-                    result = reader.ReadToEnd();
-                }
+                string customTemplatesPath = HttpContext.Current.Server.MapPath(MiniProfiler.Settings.CustomUITemplates);
+                string customTemplateFile = System.IO.Path.Combine(customTemplatesPath, filename);
 
+                if (System.IO.File.Exists(customTemplateFile))
+                {
+                    result = File.ReadAllText(customTemplateFile);
+                }
+                else
+                {
+                    using (var stream = typeof(MiniProfilerHandler).Assembly.GetManifestResourceStream("StackExchange.Profiling.UI." + filename))
+                    using (var reader = new StreamReader(stream))
+                    {
+                        result = reader.ReadToEnd();
+                    }
+                }
                 _ResourceCache[filename] = result;
             }
 
@@ -439,7 +402,7 @@ namespace StackExchange.Profiling.UI
         /// <summary>
         /// Embedded resource contents keyed by filename.
         /// </summary>
-        private static readonly Dictionary<string, string> _ResourceCache = new Dictionary<string, string>();
+        private static readonly ConcurrentDictionary<string, string> _ResourceCache = new ConcurrentDictionary<string, string>();
 
         /// <summary>
         /// Helper method that sets a proper 404 response code.

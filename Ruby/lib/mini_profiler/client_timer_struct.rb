@@ -1,14 +1,26 @@
+require 'mini_profiler/timer_struct'
+
 module Rack
   class MiniProfiler
 
     # This class holds the client timings
-    class ClientTimerStruct
-      def initialize(env)
-        @attributes = {}
+    class ClientTimerStruct < TimerStruct
+
+      def self.init_instrumentation
+        "<script type=\"text/javascript\">mPt=function(){var t=[];return{t:t,probe:function(n){t.push({d:new Date(),n:n})}}}()</script>"
+      end
+      
+      def self.instrument(name,orig)
+        probe = "<script>mPt.probe('#{name}')</script>"
+        wrapped = probe
+        wrapped << orig 
+        wrapped << probe 
+        wrapped
       end
 
-      def to_json(*a)
-        ::JSON.generate(@attributes, a[0])
+
+      def initialize(env={})
+        super
       end
 
       def init_from_form_data(env, page_struct)
@@ -21,6 +33,12 @@ module Rack
 
         baseTime = clientTimes['navigationStart'].to_i if clientTimes
         return unless clientTimes && baseTime 
+
+        probes = form['clientProbes']
+        if probes 
+          probes.each do |n|
+          end
+        end
 
         clientTimes.keys.find_all{|k| k =~ /Start$/ }.each do |k|
           start = clientTimes[k].to_i - baseTime 
@@ -35,10 +53,8 @@ module Rack
           timings.push("Name" => k, "Start" => clientTimes[k].to_i - baseTime, "Duration" => -1)
         end
 
-        @attributes.merge!({
-          "RedirectCount" => env['rack.request.form_hash']['clientPerformance']['navigation']['redirectCount'],
-          "Timings" => timings
-        })
+        self['RedirectCount'] = env['rack.request.form_hash']['clientPerformance']['navigation']['redirectCount']
+        self['Timings'] = timings
       end
     end
 

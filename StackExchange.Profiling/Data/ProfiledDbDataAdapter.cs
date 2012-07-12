@@ -23,14 +23,6 @@ namespace StackExchange.Profiling.Data
         private IDbCommand _deleteCommand;
 
         /// <summary>
-        /// Exposes the underlying adapter.  Useful for when APIs can't handle the wrapped adapter (e.g. CommandBuilder).
-        /// </summary>
-        public IDbDataAdapter InternalAdapter
-        {
-            get { return _adapter; }
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ProfiledDataAdapter"/> class.
         /// </summary>
         /// <param name="wrappedAdapter">The wrapped adapter.</param>
