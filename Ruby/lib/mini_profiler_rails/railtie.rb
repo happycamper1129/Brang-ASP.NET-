@@ -1,5 +1,3 @@
-require 'fileutils'
-
 module MiniProfilerRails
 
   class Railtie < ::Rails::Railtie
@@ -24,7 +22,7 @@ module MiniProfilerRails
 
       # The file store is just so much less flaky
       tmp = Rails.root.to_s + "/tmp/miniprofiler"
-      FileUtils.mkdir_p(tmp) unless File.exists?(tmp)
+      Dir::mkdir(tmp) unless File.exists?(tmp)
 
       c.storage_options = {:path => tmp}
       c.storage = Rack::MiniProfiler::FileStore
