@@ -6,7 +6,6 @@ require 'mini_profiler/page_timer_struct'
 require 'mini_profiler/sql_timer_struct'
 require 'mini_profiler/client_timer_struct'
 require 'mini_profiler/request_timer_struct'
-require 'mini_profiler/body_add_proxy'
 require 'mini_profiler/storage/abstract_store'
 require 'mini_profiler/storage/memory_store'
 require 'mini_profiler/storage/redis_store'
@@ -292,8 +291,12 @@ module Rack
 					
           response = Rack::Response.new([], status, headers)
           script = self.get_profile_script(env)
-          body.each { |fragment| response.write inject(fragment, script) }
-          body.close
+          if String === body
+            response.write inject(body,script)
+          else
+            body.each { |fragment| response.write inject(fragment, script) }
+          end
+          body.close if body.respond_to? :close
           response.finish
           
           return response
@@ -308,7 +311,7 @@ module Rack
 		end
 
     def inject(fragment, script)
-      fragment.gsub(/<\/body>\s*$/mi, script + "</body>") 
+      fragment.sub(/<\/body>/i, script + "</body>") 
     end
 
     def dump_env(env)
@@ -393,7 +396,7 @@ module Rack
 			showControls = false
 			currentId = current.page_struct["Id"]
 			authorized = true
-      useExistingjQuery = false
+			useExistingjQuery = @config.use_existing_jquery
 			# TODO : cache this snippet 
 			script = IO.read(::File.expand_path('../html/profile_handler.js', ::File.dirname(__FILE__)))
 			# replace the variables
