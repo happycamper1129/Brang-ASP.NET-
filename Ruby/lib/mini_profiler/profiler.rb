@@ -318,15 +318,7 @@ module Rack
 		end
 
     def inject(fragment, script)
-      fragment.sub(/<\/body>/i) do 
-        # if for whatever crazy reason we dont get a utf string, 
-        #   just force the encoding, no utf in the mp scripts anyway 
-        if script.respond_to?(:encoding) && script.respond_to?(:force_encoding)
-          (script + "</body>").force_encoding(fragment.encoding)
-        else
-          script + "</body>"
-        end
-      end
+      fragment.sub(/<\/body>/i, script + "</body>") 
     end
 
     def dump_env(env)
