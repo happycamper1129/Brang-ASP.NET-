@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Data;
 using StackExchange.Profiling.Data;
 using System.Data.Common;
 using System.Diagnostics;
@@ -24,14 +23,14 @@ namespace StackExchange.Profiling.Tests.Data
             }
         }
 
-        void IDbProfiler.ExecuteStart(IDbCommand profiledDbCommand, ExecuteType executeType)
+        void IDbProfiler.ExecuteStart(DbCommand profiledDbCommand, ExecuteType executeType)
         {
             watch.Start();
             ExecuteStartCount++;
             ErrorSql = null;
         }
 
-        void IDbProfiler.ExecuteFinish(IDbCommand profiledDbCommand, ExecuteType executeType, System.Data.Common.DbDataReader reader)
+        void IDbProfiler.ExecuteFinish(DbCommand profiledDbCommand, ExecuteType executeType, System.Data.Common.DbDataReader reader)
         {
             if (reader == null)
             {
@@ -40,13 +39,13 @@ namespace StackExchange.Profiling.Tests.Data
             ExecuteFinishCount++;
         }
 
-        void IDbProfiler.ReaderFinish(IDataReader reader)
+        void IDbProfiler.ReaderFinish(DbDataReader reader)
         {
             watch.Stop();
             ReaderFinishCount++;
         }
 
-        void IDbProfiler.OnError(IDbCommand profiledDbCommand, ExecuteType executeType, Exception exception)
+        void IDbProfiler.OnError(DbCommand profiledDbCommand, ExecuteType executeType, Exception exception)
         {
             ErrorCount++;
             ErrorSql = profiledDbCommand.CommandText;
