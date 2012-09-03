@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using StackExchange.Profiling.Data;
@@ -111,12 +110,12 @@ namespace StackExchange.Profiling
 
         // IDbProfiler methods
 
-        void IDbProfiler.ExecuteStart(IDbCommand profiledDbCommand, ExecuteType executeType)
+        void IDbProfiler.ExecuteStart(DbCommand profiledDbCommand, ExecuteType executeType)
         {
             SqlProfiler.ExecuteStart(profiledDbCommand, executeType);
         }
 
-        void IDbProfiler.ExecuteFinish(IDbCommand profiledDbCommand, ExecuteType executeType, DbDataReader reader)
+        void IDbProfiler.ExecuteFinish(DbCommand profiledDbCommand, ExecuteType executeType, DbDataReader reader)
         {
             if (reader != null)
             {
@@ -128,12 +127,12 @@ namespace StackExchange.Profiling
             }
         }
 
-        void IDbProfiler.ReaderFinish(IDataReader reader)
+        void IDbProfiler.ReaderFinish(DbDataReader reader)
         {
             SqlProfiler.ReaderFinish(reader);
         }
 
-        void IDbProfiler.OnError(IDbCommand profiledDbCommand, ExecuteType executeType, Exception exception)
+        void IDbProfiler.OnError(DbCommand profiledDbCommand, ExecuteType executeType, Exception exception)
         {
             // TODO: implement errors aggregation and presentation
         }

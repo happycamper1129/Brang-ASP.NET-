@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using System.Data.Common;
@@ -17,7 +16,7 @@ namespace StackExchange.Profiling.Data
         /// </summary>
         /// <param name="profiledDbCommand"></param>
         /// <param name="executeType"></param>
-        void ExecuteStart(IDbCommand profiledDbCommand, ExecuteType executeType);
+        void ExecuteStart(DbCommand profiledDbCommand, ExecuteType executeType);
         
         /// <summary>
         /// Called when a reader finishes executing
@@ -25,13 +24,13 @@ namespace StackExchange.Profiling.Data
         /// <param name="profiledDbCommand"></param>
         /// <param name="executeType"></param>
         /// <param name="reader"></param>
-        void ExecuteFinish(IDbCommand profiledDbCommand, ExecuteType executeType, DbDataReader reader);
+        void ExecuteFinish(DbCommand profiledDbCommand, ExecuteType executeType, DbDataReader reader);
 
         /// <summary>
         /// Called when a reader is done iterating through the data 
         /// </summary>
         /// <param name="reader"></param>
-        void ReaderFinish(IDataReader reader);
+        void ReaderFinish(DbDataReader reader);
 
         /// <summary>
         /// Called when an error happens during execution of a command 
@@ -39,7 +38,7 @@ namespace StackExchange.Profiling.Data
         /// <param name="profiledDbCommand"></param>
         /// <param name="executeType"></param>
         /// <param name="exception"></param>
-        void OnError(IDbCommand profiledDbCommand, ExecuteType executeType, Exception exception);
+        void OnError(DbCommand profiledDbCommand, ExecuteType executeType, Exception exception);
 
         /// <summary>
         /// True if the profiler instance is active

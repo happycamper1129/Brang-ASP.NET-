@@ -5,8 +5,7 @@ var MiniProfiler = (function ($) {
         container,
         controls,
         fetchedIds = [],
-        fetchingIds = [], // so we never pull down a profiler twice
-        ajaxStartTime
+        fetchingIds = []  // so we never pull down a profiler twice
         ;
 
     var hasLocalStorage = function () {
@@ -74,15 +73,15 @@ var MiniProfiler = (function ($) {
             clientPerformance = null;
             clientProbes = null;
 
-            if (window.mPt) {
-                clientProbes = mPt.results();
-                for (j = 0; j < clientProbes.length; j++) {
-                    clientProbes[j].d = clientProbes[j].d.getTime();
-                }
-                mPt.flush();
-            }
-            
             if (id == options.currentId) {
+
+                if (window.mPt) {
+                    clientProbes = mPt.t;
+                    for (j = 0; j < clientProbes.length; j++) {
+                        clientProbes[j].d = clientProbes[j].d.getTime();
+                    }
+                    mPt.t = [];
+                }
 
                 clientPerformance = getClientPerformance();
 
@@ -114,9 +113,6 @@ var MiniProfiler = (function ($) {
 
                     }
                 }
-            } else if (ajaxStartTime != null && clientProbes.length > 0) {
-                clientPerformance = { timing: { navigationStart: ajaxStartTime.getTime() } };
-                ajaxStartTime = null;
             }
 
             if ($.inArray(id, fetchedIds) < 0 && $.inArray(id, fetchingIds) < 0) {
@@ -453,9 +449,6 @@ var MiniProfiler = (function ($) {
             jQuery(document).ajaxComplete(jQueryAjaxComplete);
         }
 
-        if (jQuery(document).ajaxStart)
-            jQuery(document).ajaxStart(function () { ajaxStartTime = new Date(); });
-        
         // fetch results after ASP Ajax calls
         if (typeof (Sys) != 'undefined' && typeof (Sys.WebForms) != 'undefined' && typeof (Sys.WebForms.PageRequestManager) != 'undefined') {
             // Get the instance of PageRequestManager.
