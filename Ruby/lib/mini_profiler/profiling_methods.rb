@@ -71,16 +71,8 @@ module Rack
           return self.send without_profiling, *args, &orig unless Rack::MiniProfiler.current
 
           name = default_name 
-          if blk
-            name =
-              if respond_to?(:instance_exec)
-                instance_exec(*args, &blk)
-              else
-                # deprecated in Rails 4.x
-                blk.bind(self).call(*args)
-              end
-          end
-
+          name = blk.bind(self).call(*args) if blk
+          
           parent_timer = Rack::MiniProfiler.current.current_timer
           page_struct = Rack::MiniProfiler.current.page_struct
           result = nil
