@@ -4,6 +4,7 @@ require 'thread'
 
 require 'mini_profiler/page_timer_struct'
 require 'mini_profiler/sql_timer_struct'
+require 'mini_profiler/custom_timer_struct'
 require 'mini_profiler/client_timer_struct'
 require 'mini_profiler/request_timer_struct'
 require 'mini_profiler/storage/abstract_store'
@@ -316,7 +317,6 @@ module Rack
       end
       
       page_struct = current.page_struct
-      page_struct['User'] = user(env)
 			page_struct['Root'].record_time((Time.now - start) * 1000)
 
       if backtraces
@@ -326,7 +326,7 @@ module Rack
       
 
       # no matter what it is, it should be unviewed, otherwise we will miss POST
-      @storage.set_unviewed(page_struct['User'], page_struct['Id'])
+      @storage.set_unviewed(user(env), page_struct['Id']) 
 			@storage.save(page_struct)
 			
       # inject headers, script
