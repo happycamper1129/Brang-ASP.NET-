@@ -9,7 +9,7 @@ module MiniProfilerRails
 
       # By default, only show the MiniProfiler in development mode, in production allow profiling if post_authorize_cb is set
       c.pre_authorize_cb = lambda { |env|
-        !Rails.env.test?
+        Rails.env.development? || Rails.env.production?  
       }
 
       c.skip_paths ||= []

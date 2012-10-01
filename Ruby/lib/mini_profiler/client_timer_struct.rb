@@ -36,7 +36,7 @@ module Rack
 
         probes = form['clientProbes']
         translated = {}
-        if probes && !["null", ""].include?(probes)
+        if probes && probes != "null"
           probes.each do |id, val|
             name = val["n"]
             translated[name] ||= {} 

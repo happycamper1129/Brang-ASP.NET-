@@ -1,6 +1,5 @@
 --- 
 rack.request.form_hash:
-  clientProbes: ''
   clientPerformance: 
     navigation:
       redirectCount: 99
