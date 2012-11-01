@@ -1,6 +1,5 @@
 ﻿"use strict";
-var MiniProfiler = (function () {
-    var $;
+var MiniProfiler = (function ($) {
 
     var options,
         container,
@@ -514,42 +513,9 @@ var MiniProfiler = (function () {
 
     return {
 
-        init: function () {
-            var script = document.getElementById('mini-profiler');
-            if (!script || !script.getAttribute) return;
+        init: function (opt) {
 
-            options = (function () {
-                var version = script.getAttribute('data-version');
-                var path = script.getAttribute('data-path');
-
-                var currentId = script.getAttribute('data-current-id');
-
-                var ids = script.getAttribute('data-ids');
-                if (ids)  ids = ids.split(',');
-
-                var position = script.getAttribute('data-position');
-
-                if (script.getAttribute('data-max-traces'))
-                    var maxTraces = parseInt(script.getAttribute('data-max-traces'));
-
-                if (script.getAttribute('data-trivial') === 'true') var trivial = true;
-                if (script.getAttribute('data-children') == 'true') var children = true;
-                if (script.getAttribute('data-controls') == 'true') var controls = true;
-                if (script.getAttribute('data-authorized') == 'true') var authorized = true;
-
-                return {
-                    ids: ids,
-                    path: path,
-                    version: version,
-                    renderPosition: position,
-                    showTrivial: trivial,
-                    showChildrenTime: children,
-                    maxTracesToShow: maxTraces,
-                    showControls: controls,
-                    currentId: currentId,
-                    authorized: authorized
-                }
-            })();
+            options = opt || {};
 
             var doInit = function () {
                 // when rendering a shared, full page, this div will exist
@@ -581,50 +547,24 @@ var MiniProfiler = (function () {
                 document.getElementsByTagName('head')[0].appendChild(sc);
             };
 
-            var wait = 0;
-            var finish = false;
-            var deferInit = function() {
-                if (finish) return;
-                if (window.performance && window.performance.timing && window.performance.timing.loadEventEnd == 0 && wait < 10000) {
-                    setTimeout(deferInit, 100);
-                    wait += 100;
+            if (options.authorized) {
+                var url = options.path + "includes.css?v=" + options.version;
+                if (document.createStyleSheet) {
+                    document.createStyleSheet(url);
                 } else {
-                    finish = true;
-                    init();
+                    $('head').append($('<link rel="stylesheet" type="text/css" href="' + url + '" />'));
                 }
-            };
 
-            var init = function() {
-                if (options.authorized) {
-                    var url = options.path + "includes.css?v=" + options.version;
-                    if (document.createStyleSheet) {
-                        document.createStyleSheet(url);
-                    } else {
-                        $('head').append($('<link rel="stylesheet" type="text/css" href="' + url + '" />'));
-                    }
-                    if (!$.tmpl) {
-                        load(options.path + 'jquery.tmpl.js?v=' + options.version, doInit);
-                    } else {
-                        doInit();
-                    }
-                }
-                else {
+                if (!$.tmpl) {
+                    load(options.path + 'jquery.tmpl.js?v=' + options.version, doInit);
+                } else {
                     doInit();
                 }
             }
+            else {
+                doInit();
+            }
 
-            if (typeof(jQuery) == 'function') {
-                var jQueryVersion = jQuery.fn.jquery.split('.');
-            }
-            if (jQueryVersion && parseInt(jQueryVersion[0]) < 2 && parseInt(jQueryVersion[1]) >= 7) {
-                MiniProfiler.jQuery = $ = jQuery;
-                $(deferInit);
-            } else {
-                load(options.path + "jquery.1.7.1.js?v=" + options.version, function() {
-                    MiniProfiler.jQuery = $ = jQuery.noConflict(true);
-                    $(deferInit);
-                });
-            }
         },
 
         getClientTimingByName: function (clientTiming, name) {
@@ -844,10 +784,7 @@ var MiniProfiler = (function () {
             return (duration || 0).toFixed(1);
         }
     };
-})();
-
-MiniProfiler.init();
-
+})(jQueryMP);
 
 // prettify.js
 // http://code.google.com/p/google-code-prettify/

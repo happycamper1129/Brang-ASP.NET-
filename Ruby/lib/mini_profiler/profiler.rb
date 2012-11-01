@@ -2,10 +2,8 @@ require 'json'
 require 'timeout'
 require 'thread'
 
-require 'mini_profiler/version'
 require 'mini_profiler/page_timer_struct'
 require 'mini_profiler/sql_timer_struct'
-require 'mini_profiler/custom_timer_struct'
 require 'mini_profiler/client_timer_struct'
 require 'mini_profiler/request_timer_struct'
 require 'mini_profiler/storage/abstract_store'
@@ -21,8 +19,11 @@ require 'mini_profiler/gc_profiler'
 
 module Rack
 
-  class MiniProfiler
-    
+	class MiniProfiler
+
+    # we really should add a cleaner way to version JS and includes
+		VERSION = '108'.freeze
+
     class << self 
       
       include Rack::MiniProfiler::ProfilingMethods
@@ -78,29 +79,6 @@ module Rack
       def request_authorized?
         Thread.current[:mp_authorized]
       end
-
-      # Add a custom timing. These are displayed similar to SQL/query time in
-      # columns expanding to the right.
-      #
-      # type        - String counter type. Each distinct type gets its own column.
-      # duration_ms - Duration of the call in ms. Either this or a block must be
-      #               given but not both.
-      #
-      # When a block is given, calculate the duration by yielding to the block
-      # and keeping a record of its run time.
-      #
-      # Returns the result of the block, or nil when no block is given.
-      def counter(type, duration_ms=nil)
-        result = nil
-        if block_given?
-          start = Time.now
-          result = yield
-          duration_ms = (Time.now - start).to_f * 1000
-        end
-        return result if current.nil? || !request_authorized?
-        current.current_timer.add_custom(type, duration_ms, current.page_struct)
-        result
-      end
     end
 
 		#
@@ -149,7 +127,7 @@ module Rack
         html.gsub!(/\{json\}/, result_json)
         html.gsub!(/\{includes\}/, get_profile_script(env))
         html.gsub!(/\{name\}/, page_struct['Name'])
-        html.gsub!(/\{duration\}/, "%.1f" % page_struct.duration_ms)
+        html.gsub!(/\{duration\}/, page_struct.duration_ms.round(1).to_s)
         
         [200, {'Content-Type' => 'text/html'}, [html]]
       end
@@ -231,8 +209,6 @@ module Rack
         client_settings.disable_profiling = true
         client_settings.write!(headers)
         return [status,headers,body]
-      else
-        client_settings.disable_profiling = false
       end
 
       if query_string =~ /pp=profile-gc/
@@ -340,7 +316,6 @@ module Rack
       end
       
       page_struct = current.page_struct
-      page_struct['User'] = user(env)
 			page_struct['Root'].record_time((Time.now - start) * 1000)
 
       if backtraces
@@ -350,7 +325,7 @@ module Rack
       
 
       # no matter what it is, it should be unviewed, otherwise we will miss POST
-      @storage.set_unviewed(page_struct['User'], page_struct['Id'])
+      @storage.set_unviewed(user(env), page_struct['Id']) 
 			@storage.save(page_struct)
 			
       # inject headers, script
@@ -394,29 +369,13 @@ module Rack
 		end
 
     def inject(fragment, script)
-      if fragment.match(/<\/body>/i)
-        # explicit </body>
-
-        regex = /<\/body>/i
-        close_tag = '</body>'
-      elsif fragment.match(/<\/html>/i)
-        # implicit </body>
-
-        regex = /<\/html>/i
-        close_tag = '</html>'
-      else
-        # implicit </body> and </html>. Just append the script.
-
-        return fragment + script
-      end
-
-      fragment.sub(regex) do
-        # if for whatever crazy reason we dont get a utf string,
-        #   just force the encoding, no utf in the mp scripts anyway
+      fragment.sub(/<\/body>/i) do 
+        # if for whatever crazy reason we dont get a utf string, 
+        #   just force the encoding, no utf in the mp scripts anyway 
         if script.respond_to?(:encoding) && script.respond_to?(:force_encoding)
-          (script + close_tag).force_encoding(fragment.encoding)
+          (script + "</body>").force_encoding(fragment.encoding)
         else
-          script + close_tag
+          script + "</body>"
         end
       end
     end
@@ -490,12 +449,6 @@ module Rack
       ::JSON.generate(ids.uniq)
     end
 
-    def ids_comma_separated(env)
-      # cap at 10 ids, otherwise there is a chance you can blow the header
-      ids = [current.page_struct["Id"]] + (@storage.get_unviewed_ids(user(env)) || [])[0..8]
-      ids.join(",")
-    end
-
 		# get_profile_script returns script to be injected inside current html page
 		# By default, profile_script is appended to the end of all html requests automatically.
 		# Calling get_profile_script cancels automatic append for the current page
@@ -503,7 +456,7 @@ module Rack
 		# * you have disabled auto append behaviour throught :auto_inject => false flag
 		# * you do not want script to be automatically appended for the current page. You can also call cancel_auto_inject
 		def get_profile_script(env)
-			ids = ids_comma_separated(env)
+			ids = ids_json(env)
 			path = @config.base_url_path
 			version = MiniProfiler::VERSION
 			position = @config.position
@@ -513,13 +466,16 @@ module Rack
 			showControls = false
 			currentId = current.page_struct["Id"]
 			authorized = true
+			useExistingjQuery = @config.use_existing_jquery
 			# TODO : cache this snippet 
 			script = IO.read(::File.expand_path('../html/profile_handler.js', ::File.dirname(__FILE__)))
 			# replace the variables
-			[:ids, :path, :version, :position, :showTrivial, :showChildren, :maxTracesToShow, :showControls, :currentId, :authorized].each do |v|
+			[:ids, :path, :version, :position, :showTrivial, :showChildren, :maxTracesToShow, :showControls, :currentId, :authorized, :useExistingjQuery].each do |v|
 				regex = Regexp.new("\\{#{v.to_s}\\}")
 				script.gsub!(regex, eval(v.to_s).to_s)
 			end
+			# replace the '{{' and '}}''
+			script.gsub!(/\{\{/, '{').gsub!(/\}\}/, '}')
 			current.inject_js = false
 			script
 		end

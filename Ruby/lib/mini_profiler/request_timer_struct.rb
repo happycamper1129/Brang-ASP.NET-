@@ -33,9 +33,7 @@ module Rack
               "Depth"=> parent ? parent.depth + 1 : 0,
               "ExecutedReaders"=> 0,
               "ExecutedScalars"=> 0,
-              "ExecutedNonQueries"=> 0,
-              "CustomTimingStats" => {},
-              "CustomTimings" => {})
+              "ExecutedNonQueries"=> 0)
         @children_duration = 0
         @start = Time.now
         @parent = parent
@@ -78,23 +76,6 @@ module Rack
         self['HasSqlTimings'] = true
         self['SqlTimingsDurationMilliseconds'] += elapsed_ms
         page['DurationMillisecondsInSql'] += elapsed_ms        
-        timer
-      end
-
-      def add_custom(type, elapsed_ms, page)
-        timer = CustomTimerStruct.new(type, elapsed_ms, page, self)
-        timer['ParentTimingId'] = self['Id']
-        self['CustomTimings'][type] ||= []
-        self['CustomTimings'][type].push(timer)
-
-        self['CustomTimingStats'][type] ||= {"Count" => 0, "Duration" => 0.0}
-        self['CustomTimingStats'][type]['Count'] += 1
-        self['CustomTimingStats'][type]['Duration'] += elapsed_ms
-
-        page['CustomTimingStats'][type] ||= {"Count" => 0, "Duration" => 0.0}
-        page['CustomTimingStats'][type]['Count'] += 1
-        page['CustomTimingStats'][type]['Duration'] += elapsed_ms
-
         timer
       end
 

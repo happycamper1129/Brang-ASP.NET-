@@ -7,13 +7,8 @@ using System.ServiceModel;
 
 namespace StackExchange.Profiling.Wcf
 {
-    using System.ServiceModel.Channels;
-    using System.ServiceModel.Web;
-
     public class WcfMiniProfilerClientInspector : IClientMessageInspector
     {
-        private bool _http;
-
         static WcfMiniProfilerClientInspector()
         {
             GetCurrentProfiler = () =>
@@ -34,31 +29,14 @@ namespace StackExchange.Profiling.Wcf
             var miniProfiler = GetCurrentProfiler();
             if (miniProfiler != null)
             {
-                var header = new MiniProfilerRequestHeader
+                var untypedHeader = new MessageHeader<MiniProfilerRequestHeader>(new MiniProfilerRequestHeader
                 {
                     User = miniProfiler.User,
                     ParentProfilerId = miniProfiler.Id
-                };
+                })
+                .GetUntypedHeader(MiniProfilerRequestHeader.HeaderName, MiniProfilerRequestHeader.HeaderNamespace);
 
-                if (request.Headers.MessageVersion != MessageVersion.None)
-                {
-                    var untypedHeader = new MessageHeader<MiniProfilerRequestHeader>(header)
-                    .GetUntypedHeader(MiniProfilerRequestHeader.HeaderName, MiniProfilerRequestHeader.HeaderNamespace);
-                    request.Headers.Add(untypedHeader);
-                }
-                else if (_http || WebOperationContext.Current != null || channel.Via.Scheme == "http" | channel.Via.Scheme == "https")
-                {
-                    _http = true;
-
-                    HttpRequestMessageProperty property = null;
-                    if (!request.Properties.ContainsKey(HttpRequestMessageProperty.Name))
-                        request.Properties.Add(HttpRequestMessageProperty.Name, new HttpRequestMessageProperty());
-                    property = (HttpRequestMessageProperty)request.Properties[HttpRequestMessageProperty.Name];
-
-                    property.Headers.Add(MiniProfilerRequestHeader.HeaderName, header.ToHeaderText());
-                }
-                else
-                    throw new InvalidOperationException("MVC Mini Profiler does not support EnvelopeNone unless HTTP is the transport mechanism");
+                request.Headers.Add(untypedHeader);
 
                 return new MiniProfilerStart { StartTime = miniProfiler.DurationMilliseconds };
             }
@@ -74,35 +52,18 @@ namespace StackExchange.Profiling.Wcf
             if (profiler != null)
             {
                 // Check to see if we have a request as part of this message
-                MiniProfilerResultsHeader resultsHeader = null;
-                if (reply.Headers.MessageVersion != MessageVersion.None)
+                var headerIndex = reply.Headers.FindHeader(MiniProfilerResultsHeader.HeaderName, MiniProfilerResultsHeader.HeaderNamespace);
+                if (headerIndex >= 0)
                 {
-                    var headerIndex = reply.Headers.FindHeader(MiniProfilerResultsHeader.HeaderName, MiniProfilerResultsHeader.HeaderNamespace);
-                    if (headerIndex >= 0)
-                        resultsHeader = reply.Headers.GetHeader<MiniProfilerResultsHeader>(headerIndex);
-                }
-                else if (_http || reply.Properties.ContainsKey(HttpResponseMessageProperty.Name))
-                {
-                    _http = true;
+                    var resultsHeader = reply.Headers.GetHeader<MiniProfilerResultsHeader>(headerIndex);
+                    if (resultsHeader != null && resultsHeader.ProfilerResults != null)
+                    {
+                        // Update timings of profiler results
+                        if (profilerStart != null)
+                            resultsHeader.ProfilerResults.Root.UpdateStartMillisecondTimingsToAbsolute(profilerStart.StartTime);
 
-                    var property = (HttpResponseMessageProperty)reply.Properties[HttpResponseMessageProperty.Name];
-
-                    var text = property.Headers[MiniProfilerResultsHeader.HeaderName];
-                    if (!string.IsNullOrEmpty(text))
-                        resultsHeader = MiniProfilerResultsHeader.FromHeaderText(text);
-                }
-                else
-                    throw new InvalidOperationException("MVC Mini Profiler does not support EnvelopeNone unless HTTP is the transport mechanism");
-
-                if (resultsHeader != null && resultsHeader.ProfilerResults != null)
-                {
-                    // Update timings of profiler results
-                    if (profilerStart != null)
-                        resultsHeader.ProfilerResults.Root.UpdateStartMillisecondTimingsToAbsolute(profilerStart.StartTime);
-
-                    profiler.AddProfilerResults(resultsHeader.ProfilerResults);
-                    //if (resultsHeader.ProfilerResults.HasSqlTimings)
-                        //profiler.HasSqlTimings = true;
+                        profiler.AddProfilerResults(resultsHeader.ProfilerResults);
+                    }
                 }
             }
         }
