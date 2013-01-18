@@ -1,22 +1,19 @@
-﻿namespace StackExchange.Profiling.Helpers
-{
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 
-    /// <summary>
+namespace StackExchange.Profiling.Helpers
+{
+	/// <summary>
 	/// Gets part of a stack trace containing only methods we care about.
 	/// </summary>
 	public class StackTraceSnippet
 	{
-        /// <summary>
-        /// The asp net entry point method name.
-        /// </summary>
-        private const string AspNetEntryPointMethodName = "System.Web.HttpApplication.IExecutionStep.Execute";
+		private const string AspNetEntryPointMethodName = "System.Web.HttpApplication.IExecutionStep.Execute";
 
 		/// <summary>
-		/// Gets the current formatted and filtered stack trace.
+		/// Gets the current formatted and filted stack trace.
 		/// </summary>
 		/// <returns>Space separated list of methods</returns>
 		public static string Get()
@@ -24,7 +21,7 @@
 			var frames = new StackTrace().GetFrames();
 			if (frames == null)
 			{
-				return string.Empty;
+				return "";
 			}
 
 			var methods = new List<string>();
@@ -50,7 +47,7 @@
 
             if (result.Length > MiniProfiler.Settings.StackMaxLength)
             {
-                var index = result.IndexOf(" ", MiniProfiler.Settings.StackMaxLength, System.StringComparison.Ordinal);		
+                var index = result.IndexOf(" ", MiniProfiler.Settings.StackMaxLength);		
 	            if (index >= MiniProfiler.Settings.StackMaxLength)		
 	            {		
 	                result = result.Substring(0, index);		
@@ -60,12 +57,7 @@
 			return result;
 		}
 
-        /// <summary>
-        /// should the type be excluded.
-        /// </summary>
-        /// <param name="method">The method.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        private static bool ShouldExcludeType(MethodBase method)
+		private static bool ShouldExcludeType(MethodBase method)
 		{
 			var t = method.DeclaringType;
 

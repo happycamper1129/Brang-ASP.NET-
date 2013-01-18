@@ -1,46 +1,28 @@
-﻿namespace SampleWeb.Controllers
+﻿using System;
+using System.Data.Common;
+using System.Linq;
+using System.Threading;
+using System.Web.Mvc;
+using Dapper;
+using SampleWeb.EFCodeFirst;
+using StackExchange.Profiling;
+
+namespace SampleWeb.Controllers
 {
-    using System;
-    using System.Data.Common;
-    using System.Linq;
-    using System.Threading;
-    using System.Web.Mvc;
-
-    using Dapper;
-
-    using SampleWeb.EFCodeFirst;
-
-    using StackExchange.Profiling;
-
-    /// <summary>
-    /// The home controller.
-    /// </summary>
     public class HomeController : BaseController
     {
-        /// <summary>
-        /// enable the profiling UI.
-        /// </summary>
-        /// <returns>enable profiling the UI</returns>
         public ActionResult EnableProfilingUI()
         {
-            MvcApplication.DisableProfilingResults = false;
-            return this.Redirect("/");
+            SampleWeb.MvcApplication.DisableProfilingResults = false;
+            return Redirect("/");
         }
 
-        /// <summary>
-        /// disable the profiling UI.
-        /// </summary>
-        /// <returns>disable profiling the UI</returns>
         public ActionResult DisableProfilingUI() 
         {
-            MvcApplication.DisableProfilingResults = true;
-            return this.Redirect("/");
+            SampleWeb.MvcApplication.DisableProfilingResults = true;
+            return Redirect("/");
         }
 
-        /// <summary>
-        /// the default view, home page.
-        /// </summary>
-        /// <returns>the home page view.</returns>
         public ActionResult Index()
         {
             var profiler = MiniProfiler.Current;
@@ -62,35 +44,22 @@
                 }
             }
 
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// about view.
-        /// </summary>
-        /// <returns>the about view (default)</returns>
-        /// <remarks>this view is not profiled.</remarks>
         public ActionResult About()
         {
             // prevent this specific route from being profiled
             MiniProfiler.Stop(discardResults: true);
 
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// results authorization.
-        /// </summary>
-        /// <returns>The <see cref="ActionResult"/>.</returns>
         public ActionResult ResultsAuthorization()
         {
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// fetch the route hits.
-        /// </summary>
-        /// <returns>the view of route hits.</returns>
         public ActionResult FetchRouteHits()
         {
             var profiler = MiniProfiler.Current;
@@ -104,25 +73,15 @@
             using (var conn = GetConnection(profiler))
             {
                 var result = conn.Query<RouteHit>("select RouteName, HitCount from RouteHits order by RouteName");
-                return this.Json(result, JsonRequestBehavior.AllowGet);
+                return Json(result, JsonRequestBehavior.AllowGet);
             }
         }
 
-        /// <summary>
-        /// The XHTML view.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="ActionResult"/>.
-        /// </returns>
-        public ActionResult Xhtml()
+        public ActionResult XHTML()
         {
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// The EF code first.
-        /// </summary>
-        /// <returns>the entity framework code first view.</returns>
         public ActionResult EFCodeFirst()
         {
             int count;
@@ -135,7 +94,6 @@
                     using (MiniProfiler.Current.Step("Create Context"))
                         context = new EFContext();
 
-                    // this is not correct, as the count from this assignment is never actually used
                     using (MiniProfiler.Current.Step("First count"))
                         count = context.People.Count();
 
@@ -146,7 +104,6 @@
                         context.SaveChanges();
                     }
 
-                    // this count is actually used.
                     using (MiniProfiler.Current.Step("Second count"))
                         count = context.People.Count();
                 }
@@ -159,13 +116,9 @@
                 }
             }
 
-            return this.Content("EF Code First complete - count: " + count);
+            return Content("EF Code First complete - count: " + count);
         }
 
-        /// <summary>
-        /// duplicated queries.
-        /// </summary>
-        /// <returns>duplicated query demonstration</returns>
         public ActionResult DuplicatedQueries()
         {
             using (var conn = GetConnection())
@@ -176,164 +129,134 @@
                 {
                     total += conn.Query<long>("select count(1) from RouteHits where HitCount = @i", new { i }).First();
                 }
-                return this.Content(string.Format("Duplicated Queries (N+1) completed {0}", total));
+                return Content("Duplicated Queries (N+1) completed");
             }
         }
 
-        /// <summary>
-        /// test a massive nesting.
-        /// </summary>
-        /// <returns>the result view of the massive nesting.</returns>
         public ActionResult MassiveNesting()
         {
             var i = 0;
             using (var conn = GetConnection())
             {
-                this.RecursiveMethod(ref i, conn, MiniProfiler.Current);
+                RecursiveMethod(ref i, conn, MiniProfiler.Current);
             }
-            return this.Content("Massive Nesting completed");
+            return Content("Massive Nesting completed");
         }
 
-        /// <summary>
-        /// The second massive nesting.
-        /// </summary>
-        /// <returns>the second massive nesting view</returns>
         public ActionResult MassiveNesting2()
         {
             for (int i = 0; i < 6; i++)
             {
-                this.MassiveNesting();
+                MassiveNesting();
             }
-            return this.Content("Massive Nesting 2 completed");
+            return Content("Massive Nesting 2 completed");
         }
 
-        /// <summary>
-        /// demonstrate a recursive method.
-        /// </summary>
-        /// <param name="depth">recursion depth</param>
-        /// <param name="connection">the connection</param>
-        /// <param name="profiler">The profiler.</param>
-        private void RecursiveMethod(ref int depth, DbConnection connection, MiniProfiler profiler)
+        private void RecursiveMethod(ref int i, DbConnection conn, MiniProfiler profiler)
         {
             Thread.Sleep(5); // ensure we show up in the profiler
 
-            if (depth >= 10) return;
+            if (i >= 10) return;
 
-            using (profiler.Step("Nested call " + depth))
+            using (profiler.Step("Nested call " + i))
             {
                 // run some meaningless queries to illustrate formatting
-                connection.Query(
-                    @"select *
-                    from   MiniProfilers
-                    where  Name like @name
-                            or Name = @name
-                            or DurationMilliseconds >= @duration
-                            or HasSqlTimings = @hasSqlTimings
-                            or Started > @yesterday ",
-                    new
-                        {
-                            name = "Home/Index",
+                conn.Query(
+@"select *
+from   MiniProfilers
+where  Name like @name
+        or Name = @name
+        or DurationMilliseconds >= @duration
+        or HasSqlTimings = @hasSqlTimings
+        or Started > @yesterday ", new
+                                 {
+                                     name = "Home/Index",
                                      duration = 100.5,
                                      hasSqlTimings = true,
                                      yesterday = DateTime.UtcNow.AddDays(-1)
                                  });
 
-                connection.Query(@"select RouteName, HitCount from RouteHits where HitCount < 100000000 or HitCount > 0 order by HitCount, RouteName -- this should hopefully wrap");
+                conn.Query(@"select RouteName, HitCount from RouteHits where HitCount < 100000000 or HitCount > 0 order by HitCount, RouteName -- this should hopefully wrap");
 
                 // massive query to test if max-height is properly removed from <pre> stylings
-                connection.Query(
-                        @"select *
-                        from   (select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 0 and 9
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 10 and 19
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 20 and 29
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 30 and 39
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 40 and 49
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 50 and 59
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 60 and 69
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 70 and 79
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 80 and 89
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount between 90 and 99
-                                union all
-                                select RouteName,
-                                       HitCount
-                                from   RouteHits
-                                where  HitCount > 100)
-                        order  by RouteName");
-                
-                // need a long title to test max-width
-                using (profiler.Step("Incrementing a reference parameter named i"))
+                conn.Query(
+@"select *
+from   (select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 0 and 9
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 10 and 19
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 20 and 29
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 30 and 39
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 40 and 49
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 50 and 59
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 60 and 69
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 70 and 79
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 80 and 89
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount between 90 and 99
+        union all
+        select RouteName,
+               HitCount
+        from   RouteHits
+        where  HitCount > 100)
+order  by RouteName");
+
+                using (profiler.Step("Incrementing a reference parameter named i")) // need a long title to test max-width
                 {
-                    depth++;
+                    i++;
                 }
-                this.RecursiveMethod(ref depth, connection, profiler);
+                RecursiveMethod(ref i, conn, profiler);
             }
         }
 
-        /// <summary>
-        /// route hit.
-        /// </summary>
         public class RouteHit
         {
-            /// <summary>
-            /// Gets or sets the route name.
-            /// </summary>
             public string RouteName { get; set; }
-
-            /// <summary>
-            /// Gets or sets the hit count.
-            /// </summary>
-            public long HitCount { get; set; }
+            public Int64 HitCount { get; set; }
         }
 
-        /// <summary>
-        /// The parameterized SQL with enumerations.
-        /// </summary>
-        /// <returns>The <see cref="ActionResult"/>.</returns>
         public ActionResult ParameterizedSqlWithEnums()
         {
             using (var conn = GetConnection())
             {
-                var shouldBeOne = conn.Query<long>("select @OK = 200", new { System.Net.HttpStatusCode.OK }).Single();
-                return this.Content("Parameterized SQL with Enums completed: " + shouldBeOne);
+                var shouldBeOne = conn.Query<Int64>("select @OK = 200", new { System.Net.HttpStatusCode.OK }).Single();
+                return Content("Parameterized SQL with Enums completed: " + shouldBeOne);
             }
         }
     }

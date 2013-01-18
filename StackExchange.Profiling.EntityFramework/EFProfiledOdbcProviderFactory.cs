@@ -1,23 +1,25 @@
-﻿namespace StackExchange.Profiling.Data
-{
-    using System.Data.Odbc;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Data.SqlClient;
+using System.Data.Odbc;
 
+namespace StackExchange.Profiling.Data
+{
     /// <summary>
-    /// Specific implementation of <c>EFProfiledDbProviderFactory&lt;OdbcFactory&gt;</c> to enable profiling
+    /// Specific implementation of EFProfiledDbProviderFactory&lt;OdbcFactory&gt; to enable profiling
     /// </summary>
     public class EFProfiledOdbcProviderFactory
         : EFProfiledDbProviderFactory<OdbcFactory>
     {
+        private EFProfiledOdbcProviderFactory()
+        { }
+
         /// <summary>
         /// Every provider factory must have an Instance public field
         /// </summary>
-        public static EFProfiledOdbcProviderFactory instance = new EFProfiledOdbcProviderFactory();
+        public static new EFProfiledOdbcProviderFactory Instance = new EFProfiledOdbcProviderFactory();
 
-        /// <summary>
-        /// Prevents a default instance of the <see cref="EFProfiledOdbcProviderFactory"/> class from being created.
-        /// </summary>
-        private EFProfiledOdbcProviderFactory()
-        {
-        }
     }
 }

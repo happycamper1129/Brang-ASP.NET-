@@ -1,39 +1,30 @@
-﻿namespace Sample.Console
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using StackExchange.Profiling;
+
+using Dapper;
+
+namespace Sample.Console
 {
-    using System.Data.Common;
-
-    using Dapper;
-
-    using StackExchange.Profiling;
-
-    /// <summary>
-    /// simple sample console application.
-    /// </summary>
-    public class Program
+    class Program
     {
-        /// <summary>
-        /// application entry point.
-        /// </summary>
-        /// <param name="args">application command line arguments.</param>
-        public static void Main(string[] args)
+        static void Main(string[] args)
         {
             SetupProfiling();
             Test();
             Report();
         }
 
-        /// <summary>
-        /// setup the profiling.
-        /// </summary>
-        public static void SetupProfiling()
+        static void SetupProfiling()
         {
             MiniProfiler.Settings.ProfilerProvider = new SingletonProfilerProvider();
         }
 
-        /// <summary>
-        /// test the profiling.
-        /// </summary>
-        public static void Test()
+        static void Test()
         {
             var mp = MiniProfiler.Start();
 
@@ -51,10 +42,7 @@
             MiniProfiler.Stop();
         }
 
-        /// <summary>
-        /// produce a profiling report.
-        /// </summary>
-        public static void Report()
+        static void Report()
         {
             System.Console.WriteLine(MiniProfiler.Current.RenderPlainText());
             System.Console.ReadKey();
@@ -63,8 +51,7 @@
         /// <summary>
         /// Returns an open connection that will have its queries profiled.
         /// </summary>
-        /// <returns>the database connection abstraction</returns>
-        public static DbConnection GetConnection()
+        static DbConnection GetConnection()
         {
             DbConnection cnn = new System.Data.SQLite.SQLiteConnection("Data Source=:memory:");
 

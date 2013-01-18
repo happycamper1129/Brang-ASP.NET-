@@ -1,31 +1,28 @@
-﻿namespace SampleWeb.Controllers
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using System.Web.Routing;
+using System.Web.Security;
+using SampleWeb.Models;
+
+namespace SampleWeb.Controllers
 {
-    using System;
-    using System.Web.Mvc;
-    using System.Web.Security;
-
-    using SampleWeb.Models;
-
-    /// <summary>
-    /// The account controller.
-    /// </summary>
     public class AccountController : BaseController
     {
-        /// <summary>
-        /// log on.
-        /// </summary>
-        /// <returns>the login view</returns>
+
+        //
+        // GET: /Account/LogOn
+
         public ActionResult LogOn()
         {
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// perform the log in.
-        /// </summary>
-        /// <param name="model">the login details.</param>
-        /// <param name="returnUrl">The return url.</param>
-        /// <returns>the logged in view.</returns>
+        //
+        // POST: /Account/LogOn
+
         [HttpPost]
         public ActionResult LogOn(LogOnModel model, string returnUrl)
         {
@@ -37,41 +34,44 @@
                     if (Url.IsLocalUrl(returnUrl) && returnUrl.Length > 1 && returnUrl.StartsWith("/")
                         && !returnUrl.StartsWith("//") && !returnUrl.StartsWith("/\\"))
                     {
-                        return this.Redirect(returnUrl);
+                        return Redirect(returnUrl);
                     }
-                    return this.RedirectToAction("Index", "Home");
+                    else
+                    {
+                        return RedirectToAction("Index", "Home");
+                    }
                 }
-                this.ModelState.AddModelError(string.Empty, "The user name or password provided is incorrect.");
+                else
+                {
+                    ModelState.AddModelError("", "The user name or password provided is incorrect.");
+                }
             }
 
             // If we got this far, something failed, redisplay form
-            return this.View(model);
+            return View(model);
         }
 
-        /// <summary>
-        /// log off.
-        /// </summary>
-        /// <returns>log off</returns>
+        //
+        // GET: /Account/LogOff
+
         public ActionResult LogOff()
         {
             FormsAuthentication.SignOut();
-            return this.RedirectToAction("Index", "Home");
+
+            return RedirectToAction("Index", "Home");
         }
 
-        /// <summary>
-        /// register a new user.
-        /// </summary>
-        /// <returns>the registration view.</returns>
+        //
+        // GET: /Account/Register
+
         public ActionResult Register()
         {
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// register the supplied user.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns>the new user registration view.</returns>
+        //
+        // POST: /Account/Register
+
         [HttpPost]
         public ActionResult Register(RegisterModel model)
         {
@@ -84,30 +84,30 @@
                 if (createStatus == MembershipCreateStatus.Success)
                 {
                     FormsAuthentication.SetAuthCookie(model.UserName, false /* createPersistentCookie */);
-                    return this.RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Home");
                 }
-                this.ModelState.AddModelError(string.Empty, ErrorCodeToString(createStatus));
+                else
+                {
+                    ModelState.AddModelError("", ErrorCodeToString(createStatus));
+                }
             }
 
             // If we got this far, something failed, redisplay form
-            return this.View(model);
+            return View(model);
         }
 
-        /// <summary>
-        /// change the password.
-        /// </summary>
-        /// <returns>the password change view.</returns>
+        //
+        // GET: /Account/ChangePassword
+
         [Authorize]
         public ActionResult ChangePassword()
         {
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// change the password.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <returns>the changed password view</returns>
+        //
+        // POST: /Account/ChangePassword
+
         [Authorize]
         [HttpPost]
         public ActionResult ChangePassword(ChangePasswordModel model)
@@ -121,8 +121,6 @@
                 try
                 {
                     MembershipUser currentUser = Membership.GetUser(User.Identity.Name, true /* userIsOnline */);
-                    if (null == currentUser)
-                        throw new NullReferenceException("the current user is null.");
                     changePasswordSucceeded = currentUser.ChangePassword(model.OldPassword, model.NewPassword);
                 }
                 catch (Exception)
@@ -132,31 +130,27 @@
 
                 if (changePasswordSucceeded)
                 {
-                    return this.RedirectToAction("ChangePasswordSuccess");
+                    return RedirectToAction("ChangePasswordSuccess");
                 }
-                this.ModelState.AddModelError(string.Empty, "The current password is incorrect or the new password is invalid.");
+                else
+                {
+                    ModelState.AddModelError("", "The current password is incorrect or the new password is invalid.");
+                }
             }
 
             // If we got this far, something failed, redisplay form
-            return this.View(model);
+            return View(model);
         }
 
-        /// <summary>
-        /// change password success.
-        /// </summary>
-        /// <returns>the view</returns>
+        //
+        // GET: /Account/ChangePasswordSuccess
+
         public ActionResult ChangePasswordSuccess()
         {
-            return this.View();
+            return View();
         }
 
         #region Status Codes
-
-        /// <summary>
-        /// error code to string.
-        /// </summary>
-        /// <param name="createStatus">The create status.</param>
-        /// <returns>the error message, based on the supplied status.</returns>
         private static string ErrorCodeToString(MembershipCreateStatus createStatus)
         {
             // See http://go.microsoft.com/fwlink/?LinkID=177550 for

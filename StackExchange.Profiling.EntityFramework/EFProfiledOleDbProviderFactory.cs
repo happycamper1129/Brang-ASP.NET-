@@ -1,23 +1,25 @@
-﻿namespace StackExchange.Profiling.Data
-{
-    using System.Data.OleDb;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Data.SqlClient;
+using System.Data.OleDb;
 
+namespace StackExchange.Profiling.Data
+{
     /// <summary>
-    /// Specific implementation of <c>EFProfiledDbProviderFactory&lt;OleDbFactory&gt;</c> to enable profiling
+    /// Specific implementation of EFProfiledDbProviderFactory&lt;OleDbFactory&gt; to enable profiling
     /// </summary>
     public class EFProfiledOleDbProviderFactory
         : EFProfiledDbProviderFactory<OleDbFactory>
     {
+        private EFProfiledOleDbProviderFactory()
+        { }
+
         /// <summary>
         /// Every provider factory must have an Instance public field
         /// </summary>
         public static new EFProfiledOleDbProviderFactory Instance = new EFProfiledOleDbProviderFactory();
 
-        /// <summary>
-        /// Prevents a default instance of the <see cref="EFProfiledOleDbProviderFactory"/> class from being created.
-        /// </summary>
-        private EFProfiledOleDbProviderFactory()
-        {
-        }
     }
 }

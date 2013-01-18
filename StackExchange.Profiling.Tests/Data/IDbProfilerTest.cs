@@ -1,36 +1,44 @@
-﻿namespace StackExchange.Profiling.Tests.Data
+﻿using System;
+using System.Data;
+using System.Data.Common;
+using System.Data.SqlServerCe;
+using System.IO;
+using StackExchange.Profiling.Data;
+using NUnit.Framework;
+using StackExchange.Profiling.Helpers.Dapper;
+
+namespace StackExchange.Profiling.Tests.Data
 {
-    using System.Data;
-    using System.Data.Common;
-    using System.Data.SqlServerCe;
-    using System.Diagnostics;
-
-    using NUnit.Framework;
-
-    using StackExchange.Profiling.Data;
-    using StackExchange.Profiling.Helpers.Dapper;
-
-    /// <summary>
-    /// The profiler test.
-    /// </summary>
     [TestFixture]
-    public class DbProfilerTest : BaseTest
+    public class IDbProfilerTest : BaseTest
     {
-        /// <summary>
-        /// The test fixture set up.
-        /// </summary>
-        public void TestFixtureSetUp()
+        class CountingConnection : ProfiledDbConnection
         {
-            BaseTest.CreateSqlCeDatabase<DbProfilerTest>(sqlToExecute: new[] { "create table TestTable (Id int null)" });
+            public CountingDbProfiler CountingProfiler { get; set; }
+
+            public CountingConnection(DbConnection connection, IDbProfiler profiler)
+                : base(connection, profiler)
+            {
+                CountingProfiler = (CountingDbProfiler)profiler;
+            }
         }
 
-        /// <summary>
-        /// The non query.
-        /// </summary>
+        [TestFixtureSetUp]
+        public void TestFixtureSetUp()
+        {
+            CreateSqlCeDatabase<IDbProfilerTest>(sqlToExecute: new[] { "create table TestTable (Id int null)" });
+        }
+
+        private CountingConnection GetConnection()
+        {
+            var connection = GetOpenSqlCeConnection<IDbProfilerTest>();
+            return new CountingConnection(connection, new CountingDbProfiler());
+        }
+
         [Test]
         public void NonQuery()
         {
-            using (var conn = this.GetConnection())
+            using (var conn = GetConnection())
             {
                 var profiler = conn.CountingProfiler;
 
@@ -46,13 +54,10 @@
             }
         }
 
-        /// <summary>
-        /// test scalar.
-        /// </summary>
         [Test]
         public void Scalar()
         {
-            using (var conn = this.GetConnection())
+            using (var conn = GetConnection())
             using (var cmd = conn.CreateCommand())
             {
                 var profiler = conn.CountingProfiler;
@@ -66,13 +71,10 @@
             }
         }
 
-        /// <summary>
-        /// The data reader.
-        /// </summary>
         [Test]
         public void DataReader()
         {
-            using (var conn = this.GetConnection())
+            using (var conn = GetConnection())
             using (var cmd = conn.CreateCommand())
             {
                 var profiler = conn.CountingProfiler;
@@ -90,83 +92,69 @@
             }
         }
 
-        /// <summary>
-        /// The errors.
-        /// </summary>
         [Test]
         public void Errors()
         {
-            using (var conn = this.GetConnection())
+            using (var conn = GetConnection())
             {
-                const string BadSql = "TROGDOR BURNINATE";
+                string badSql = "TROGDOR BURNINATE";
 
                 try
                 {
-                    conn.Execute(BadSql);
+                    conn.Execute(badSql);
                 }
-                catch (DbException)
-                {
-                }
+                catch (DbException) { /**/ }
 
                 var profiler = conn.CountingProfiler;
 
                 Assert.That(profiler.ErrorCount == 1);
                 Assert.That(profiler.ExecuteStartCount == 1);
                 Assert.That(profiler.ExecuteFinishCount == 1);
-                Assert.That(profiler.ErrorSql == BadSql);
+                Assert.That(profiler.ErrorSql == badSql);
 
                 try
                 {
-                    conn.Query<int>(BadSql);
+                    conn.Query<int>(badSql);
                 }
-                catch (DbException)
-                {
-                }
+                catch (DbException) { /**/ }
 
                 Assert.That(profiler.ErrorCount == 2);
                 Assert.That(profiler.ExecuteStartCount == 2);
                 Assert.That(profiler.ExecuteFinishCount == 2);
-                Assert.That(profiler.ErrorSql == BadSql);
+                Assert.That(profiler.ErrorSql == badSql);
 
                 try
                 {
                     using (var cmd = conn.CreateCommand())
                     {
-                        cmd.CommandText = BadSql;
+                        cmd.CommandText = badSql;
                         cmd.ExecuteScalar();
                     }
                 }
-                catch (DbException)
-                {
-                }
+                catch (DbException) { /**/ }
 
                 Assert.That(profiler.ExecuteStartCount == 3);
                 Assert.That(profiler.ExecuteFinishCount == 3);
                 Assert.That(profiler.ErrorCount == 3);
-                Assert.That(profiler.ErrorSql == BadSql);
+                Assert.That(profiler.ErrorSql == badSql);
             }
         }
 
-        /// <summary>
-        /// The data adapter.
-        /// </summary>
         [Test]
         public void DataAdapter()
         {
             MiniProfiler mp;
             var factory = EFProfiledDbProviderFactory<SqlCeProviderFactory>.Instance;
 
-            using (BaseTest.GetRequest())
+            using (GetRequest())
             using (var da = factory.CreateDataAdapter())
             {
                 var cmd = factory.CreateCommand();
-                Debug.Assert(cmd != null, "cmd != null");
                 cmd.CommandText = "select 1 as A, 2 as B";
-                Debug.Assert(da != null, "da != null");
                 da.SelectCommand = cmd;
-                da.SelectCommand.Connection = this.GetConnection();
+                da.SelectCommand.Connection = GetConnection();
 
-                var ds = new DataSet();
+                DataSet ds = new DataSet();
                 da.Fill(ds);
 
                 Assert.That(((int)ds.Tables[0].Rows[0][0]) == 1);
@@ -178,40 +166,5 @@
             Assert.That(mp.ExecutedNonQueries == 0);
         }
 
-        /// <summary>
-        /// The get connection.
-        /// </summary>
-        /// <returns>the counting connection</returns>
-        private CountingConnection GetConnection()
-        {
-            var connection = GetOpenSqlCeConnection<DbProfilerTest>();
-            return new CountingConnection(connection, new CountingDbProfiler());
-        }
-
-        /// <summary>
-        /// The counting connection.
-        /// </summary>
-        public class CountingConnection : ProfiledDbConnection
-        {
-            /// <summary>
-            /// Initialises a new instance of the <see cref="CountingConnection"/> class. 
-            /// </summary>
-            /// <param name="connection">
-            /// The connection.
-            /// </param>
-            /// <param name="profiler">
-            /// The profiler.
-            /// </param>
-            public CountingConnection(DbConnection connection, IDbProfiler profiler)
-                : base(connection, profiler)
-            {
-                this.CountingProfiler = (CountingDbProfiler)profiler;
-            }
-
-            /// <summary>
-            /// Gets or sets the counting profiler.
-            /// </summary>
-            public CountingDbProfiler CountingProfiler { get; set; }
-        }
     }
 }

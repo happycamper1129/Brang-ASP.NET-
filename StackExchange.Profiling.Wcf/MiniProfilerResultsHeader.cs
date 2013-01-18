@@ -1,15 +1,15 @@
-﻿namespace StackExchange.Profiling.Wcf
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Runtime.Serialization;
+
+namespace StackExchange.Profiling.Wcf
 {
-    using System;
     using System.IO;
     using System.IO.Compression;
-    using System.Runtime.Serialization;
-    using System.Text;
     using System.Xml;
 
-    /// <summary>
-    /// The mini profiler results header.
-    /// </summary>
     [DataContract]
     public class MiniProfilerResultsHeader
     {
@@ -33,7 +33,7 @@
         /// Convert the supplied compressed and encoded string into a profile header.
         /// </summary>
         /// <param name="text">The text.</param>
-        /// <returns>The <c>deserialized</c> instance.</returns>
+        /// <returns>The deserialized instance.</returns>
         public static MiniProfilerResultsHeader FromHeaderText(string text)
         {
             byte[] buffer = Convert.FromBase64String(text);

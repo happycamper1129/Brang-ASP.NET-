@@ -1,28 +1,13 @@
-﻿namespace StackExchange.Profiling.Data
-{
-    using System;
-    using System.Data;
+﻿using System;
+using System.Data;
 
-    /// <summary>
-    /// A simple profiled data reader.
-    /// </summary>
+namespace StackExchange.Profiling.Data
+{
     public class SimpleProfiledDataReader : IDataReader
     {
-        /// <summary>
-        /// The reader.
-        /// </summary>
         private readonly IDataReader _reader;
-
-        /// <summary>
-        /// The profiler.
-        /// </summary>
         private readonly IDbProfiler _profiler;
 
-        /// <summary>
-        /// Initialises a new instance of the <see cref="SimpleProfiledDataReader"/> class.
-        /// </summary>
-        /// <param name="reader">The reader.</param>
-        /// <param name="profiler">The profiler.</param>
         public SimpleProfiledDataReader(IDataReader reader, IDbProfiler profiler)
         {
             if (reader == null) throw new ArgumentNullException("reader");
@@ -35,325 +20,131 @@
             }
         }
 
-        /// <summary>
-        /// get the name.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>a string containing the name</returns>
-        public string GetName(int index)
+        public string GetName(int i)
         {
-            return _reader.GetName(index);
+            return _reader.GetName(i);
         }
 
-        /// <summary>
-        /// get the data type name.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>The <see cref="string"/>.</returns>
-        public string GetDataTypeName(int index)
+        public string GetDataTypeName(int i)
         {
-            return _reader.GetDataTypeName(index);
+            return _reader.GetDataTypeName(i);
         }
 
-        /// <summary>
-        /// get the field type.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>The <see cref="Type"/>.</returns>
-        public Type GetFieldType(int index)
+        public Type GetFieldType(int i)
         {
-            return _reader.GetFieldType(index);
+            return _reader.GetFieldType(i);
         }
 
-        /// <summary>
-        /// get the value.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>The <see cref="object"/>.</returns>
-        public object GetValue(int index)
+        public object GetValue(int i)
         {
-            return _reader.GetValue(index);
+            return _reader.GetValue(i);
         }
 
-        /// <summary>
-        /// get the values.
-        /// </summary>
-        /// <param name="values">The values.</param>
-        /// <returns>The <see cref="int"/>.</returns>
         public int GetValues(object[] values)
         {
             return _reader.GetValues(values);
         }
 
-        /// <summary>
-        /// get the ordinal.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <returns>The <see cref="int"/>.</returns>
         public int GetOrdinal(string name)
         {
             return _reader.GetOrdinal(name);
         }
 
-        /// <summary>
-        /// The get boolean.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
-        public bool GetBoolean(int index)
+        public bool GetBoolean(int i)
         {
-            return _reader.GetBoolean(index);
+            return _reader.GetBoolean(i);
         }
 
-        /// <summary>
-        /// The get byte.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="byte"/>.
-        /// </returns>
-        public byte GetByte(int index)
+        public byte GetByte(int i)
         {
-            return _reader.GetByte(index);
+            return _reader.GetByte(i);
         }
 
-        /// <summary>
-        /// Gets the value for the column specified by the ordinal as an array of <see cref="T:System.Byte"/> objects.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <param name="fieldOffset">The field Offset.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="bufferoffset">The buffer offset.</param>
-        /// <param name="length">The length.</param>
-        /// <returns>The number of bytes copied.</returns>
-        public long GetBytes(int index, long fieldOffset, byte[] buffer, int bufferoffset, int length)
+        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
         {
-            return _reader.GetBytes(index, fieldOffset, buffer, bufferoffset, length);
+            return _reader.GetBytes(i, fieldOffset, buffer, bufferoffset, length);
         }
 
-        /// <summary>
-        /// The get char.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="char"/>.
-        /// </returns>
-        public char GetChar(int index)
+        public char GetChar(int i)
         {
-            return _reader.GetChar(index);
+            return _reader.GetChar(i);
         }
 
-        /// <summary>
-        /// Gets the value for the column specified by the ordinal as an array of <see cref="T:System.Char"/> objects.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <param name="fieldoffset">The field offset.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="bufferoffset">The buffer offset.</param>
-        /// <param name="length">The length.</param>
-        /// <returns>The <see cref="long"/>.</returns>
-        public long GetChars(int index, long fieldoffset, char[] buffer, int bufferoffset, int length)
+        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
         {
-            return _reader.GetChars(index, fieldoffset, buffer, bufferoffset, length);
+            return _reader.GetChars(i, fieldoffset, buffer, bufferoffset, length);
         }
 
-        /// <summary>
-        /// get the GUID.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>The <see cref="Guid"/>.</returns>
-        public Guid GetGuid(int index)
+        public Guid GetGuid(int i)
         {
-            return _reader.GetGuid(index);
+            return _reader.GetGuid(i);
         }
 
-        /// <summary>
-        /// Gets the value for the column specified by the ordinal as a <see cref="T:System.Int16"/>.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="short"/>.
-        /// </returns>
-        public short GetInt16(int index)
+        public short GetInt16(int i)
         {
-            return _reader.GetInt16(index);
+            return _reader.GetInt16(i);
         }
 
-        /// <summary>
-        /// Gets the value for the column specified by the ordinal as a <see cref="T:System.Int32"/>.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="int"/>.
-        /// </returns>
-        public int GetInt32(int index)
+        public int GetInt32(int i)
         {
-            return _reader.GetInt32(index);
+            return _reader.GetInt32(i);
         }
 
-        /// <summary>
-        /// Gets the value for the column specified by the ordinal as a <see cref="T:System.Int64"/>.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="long"/>.
-        /// </returns>
-        public long GetInt64(int index)
+        public long GetInt64(int i)
         {
-            return _reader.GetInt64(index);
+            return _reader.GetInt64(i);
         }
 
-        /// <summary>
-        /// The get float.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        public float GetFloat(int index)
+        public float GetFloat(int i)
         {
-            return _reader.GetFloat(index);
+            return _reader.GetFloat(i);
         }
 
-        /// <summary>
-        /// The get double.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="double"/>.
-        /// </returns>
-        public double GetDouble(int index)
+        public double GetDouble(int i)
         {
-            return _reader.GetDouble(index);
+            return _reader.GetDouble(i);
         }
 
-        /// <summary>
-        /// The get string.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="string"/>.
-        /// </returns>
-        public string GetString(int index)
+        public string GetString(int i)
         {
-            return _reader.GetString(index);
+            return _reader.GetString(i);
         }
 
-        /// <summary>
-        /// The get decimal.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="decimal"/>.
-        /// </returns>
-        public decimal GetDecimal(int index)
+        public decimal GetDecimal(int i)
         {
-            return _reader.GetDecimal(index);
+            return _reader.GetDecimal(i);
         }
 
-        /// <summary>
-        /// The get date time.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="DateTime"/>.
-        /// </returns>
-        public DateTime GetDateTime(int index)
+        public DateTime GetDateTime(int i)
         {
-            return _reader.GetDateTime(index);
+            return _reader.GetDateTime(i);
         }
 
-        /// <summary>
-        /// The get data.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="IDataReader"/>.
-        /// </returns>
-        public IDataReader GetData(int index)
+        public IDataReader GetData(int i)
         {
-            return _reader.GetData(index);
+            return _reader.GetData(i);
         }
 
-        /// <summary>
-        /// Returns true if the column specified by the column ordinal parameter is null.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
-        public bool IsDBNull(int index)
+        public bool IsDBNull(int i)
         {
-            return _reader.IsDBNull(index);
+            return _reader.IsDBNull(i);
         }
 
-        /// <summary>
-        /// Gets the field count.
-        /// </summary>
         public int FieldCount
         {
             get { return _reader.FieldCount; }
         }
 
-        /// <summary>
-        /// The this.
-        /// </summary>
-        /// <param name="index">
-        /// The index.
-        /// </param>
-        /// <returns>
-        /// The <see cref="object"/>.
-        /// </returns>
-        public object this[int index]
+        public object this[int i]
         {
-            get { return _reader[index]; }
+            get { return _reader[i]; }
         }
 
-        /// <summary>
-        /// The this.
-        /// </summary>
-        /// <param name="name">
-        /// The name.
-        /// </param>
-        /// <returns>
-        /// The <see cref="object"/>.
-        /// </returns>
         public object this[string name]
         {
             get { return _reader[name]; }
         }
 
-        /// <summary>
-        /// The close.
-        /// </summary>
         public void Close()
         {
             // this can occur when we're not profiling but we've inherited from SimpleProfiledCommand
@@ -369,75 +160,42 @@
             }
         }
 
-        /// <summary>
-        /// The get schema table.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="DataTable"/>.
-        /// </returns>
         public DataTable GetSchemaTable()
         {
             return _reader.GetSchemaTable();
         }
 
-        /// <summary>
-        /// The next result.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
         public bool NextResult()
         {
             return _reader.NextResult();
         }
 
-        /// <summary>
-        /// read from the underlying reader.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="bool"/>.</returns>
         public bool Read()
         {
             return _reader.Read();
         }
 
-        /// <summary>
-        /// Gets the depth.
-        /// </summary>
         public int Depth
         {
             get { return _reader.Depth; }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether is closed.
-        /// </summary>
         public bool IsClosed
         {
             get { return _reader.IsClosed; }
         }
 
-        /// <summary>
-        /// Gets the number of records affected.
-        /// </summary>
         public int RecordsAffected
         {
             get { return _reader.RecordsAffected; }
         }
 
-        /// <summary>
-        /// dispose the command / connection and profiler.
-        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-        /// <summary>
-        /// dispose the command / connection and profiler.
-        /// </summary>
-        /// <param name="disposing">false if the dispose is called from a <c>finalizer</c></param>
         private void Dispose(bool disposing)
         {
             if (disposing && _reader != null)

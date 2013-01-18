@@ -1,24 +1,21 @@
-﻿namespace StackExchange.Profiling
-{
-    using System;
-    using System.Data;
-    using System.Data.Common;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Reflection;
-    using System.Security;
+﻿using System;
+using System.Linq;
+using System.Data.Common;
+using System.Data;
+using System.Reflection;
+using System.Diagnostics;
+using System.Security;
 
-    /// <summary>
-    /// The mini profiler for entity framework.
-    /// </summary>
+namespace StackExchange.Profiling
+{
     public partial class MiniProfilerEF
     {
         /// <summary>
-        /// Called exactly once, to setup <c>DbProviderFactory</c> interception, so SQL is profiled
+        /// Called exactly once, to setup DbProviderFactory interception, so SQL is profiled
         /// </summary>
         /// <param name="supportExplicitConnectionStrings">
         /// Temporary API. Related to the EF 4.1 hack, set this to false if you are wishing
-        /// to profile SQLCE and are not using any explicit connection strings for EF. Otherwise, leave this set to true (default)
+        /// to profile SqlCE and are not using any explicit connection strings for EF. Otherwise, leave this set to true (default)
         /// </param>
         public static void Initialize(bool supportExplicitConnectionStrings = true)
         {
@@ -34,33 +31,21 @@
         /// Temporary API. Related to the EF 4.1 hack, set this to false if you are wishing
         /// to profile SqlCE and are not using any explicit connection strings for EF. Otherwise, leave this set to true (default)
         /// </param>
-        public static void InitializeEF42(bool supportExplicitConnectionStrings = true)
+        public static void Initialize_EF42(bool supportExplicitConnectionStrings = true)
         {
             Initialize(true, supportExplicitConnectionStrings);
         }
 
-        /// <summary>
-        /// The initialize.
-        /// </summary>
-        /// <param name="applyEFHack">
-        /// apply the EF hack.
-        /// </param>
-        /// <param name="supportExplicitConnectionStrings">
-        /// The support explicit connection strings.
-        /// </param>
         private static void Initialize(bool applyEFHack, bool supportExplicitConnectionStrings)
         {
             if (supportExplicitConnectionStrings && (applyEFHack || IsEF41HackRequired()))
             {
-                Data.EFProviderUtilities.UseEF41Hack();
+                StackExchange.Profiling.Data.EFProviderUtilities.UseEF41Hack();
             }
 
             InitializeDbProviderFactories();
         }
 
-        /// <summary>
-        /// The initialize database provider factories.
-        /// </summary>
         private static void InitializeDbProviderFactories()
         {
             try
@@ -74,13 +59,13 @@
 
             Type type = typeof(DbProviderFactories);
 
-            DataTable table = null;
+            DataTable table;
             object setOrTable = (type.GetField("_configTable", BindingFlags.NonPublic | BindingFlags.Static) ??
                             type.GetField("_providerTable", BindingFlags.NonPublic | BindingFlags.Static)).GetValue(null);
-
-            var set = setOrTable as DataSet;
-            if (set != null)
-                table = set.Tables["DbProviderFactories"];
+            if (setOrTable is DataSet)
+            {
+                table = ((DataSet)setOrTable).Tables["DbProviderFactories"];
+            }
 
             table = (DataTable)setOrTable;
 
@@ -96,7 +81,7 @@
                     continue;
                 }
 
-                var profType = Data.EFProviderUtilities.ResolveFactoryType(factory.GetType());
+                var profType = StackExchange.Profiling.Data.EFProviderUtilities.ResolveFactoryType(factory.GetType());
                 if (profType != null)
                 {
                     DataRow profiled = table.NewRow();
@@ -113,13 +98,13 @@
         /// <summary>
         /// Returns true if the EF version is between 4.1.10331.0 and 4.2
         /// </summary>
-        /// <returns>whether or not the hack is required</returns>
+        /// <returns></returns>
         private static bool IsEF41HackRequired()
         {
             try
             {
-                var assembly = typeof(System.Data.Entity.DbContext).Assembly;
-                FileVersionInfo fileVersion = FileVersionInfo.GetVersionInfo(assembly.Location);
+                var efAssembly = typeof(System.Data.Entity.DbContext).Assembly;
+                FileVersionInfo fileVersion = FileVersionInfo.GetVersionInfo(efAssembly.Location);
                 if (fileVersion.FileMajorPart == 4
                     && fileVersion.FileMinorPart == 1
                     && fileVersion.FileBuildPart >= 10331)
@@ -132,7 +117,6 @@
                 // As this method requires full trust
                 throw new ApplicationException("Could not read file version number of apply EF41 hack. Please try by calling Initialize_EF42() explicitly");
             }
-
             return false;
         }
     }

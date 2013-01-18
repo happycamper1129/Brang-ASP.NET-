@@ -1,62 +1,40 @@
-﻿namespace StackExchange.Profiling.Data
-{
-    using System;
-    using System.Data;
-    using System.Data.Common;
+﻿using System;
+using System.Data;
+using System.Data.Common;
 
+namespace StackExchange.Profiling.Data
+{
     /// <summary>
-    /// Provides a wrapper around a native <c>DbDataAdapter</c>, allowing a profiled Fill operation.
+    /// Provides a wrapper around a native DbDataAdapter, allowing a profiled Fill operation.
     /// </summary>
     public class ProfiledDbDataAdapter : DbDataAdapter
     {
         /// <summary>
         /// This static variable is simply used as a non-null placeholder in the MiniProfiler.ExecuteFinish method
         /// </summary>
-        private static readonly DbDataReader TokenReader = new DataTableReader(new DataTable());
+        private static readonly DbDataReader _tokenReader = new DataTableReader(new DataTable());
 
-        /// <summary>
-        /// The profiler.
-        /// </summary>
         private readonly IDbProfiler _profiler;
-
-        /// <summary>
-        /// The adapter.
-        /// </summary>
         private readonly IDbDataAdapter _adapter;
 
-        /// <summary>
-        /// The select command.
-        /// </summary>
         private IDbCommand _selectCommand;
-
-        /// <summary>
-        /// The insert command.
-        /// </summary>
         private IDbCommand _insertCommand;
-
-        /// <summary>
-        /// The update command.
-        /// </summary>
         private IDbCommand _updateCommand;
-
-        /// <summary>
-        /// The delete command.
-        /// </summary>
         private IDbCommand _deleteCommand;
 
         /// <summary>
-        /// Gets the underlying adapter.  Useful for when APIs can't handle the wrapped adapter (e.g. CommandBuilder).
+        /// Exposes the underlying adapter.  Useful for when APIs can't handle the wrapped adapter (e.g. CommandBuilder).
         /// </summary>
         public IDbDataAdapter InternalAdapter
         {
-            get { return this._adapter; }
+            get { return _adapter; }
         }
 
         /// <summary>
-        /// Initialises a new instance of the <see cref="ProfiledDbDataAdapter"/> class.
+        /// Initializes a new instance of the <see cref="ProfiledDataAdapter"/> class.
         /// </summary>
         /// <param name="wrappedAdapter">The wrapped adapter.</param>
-        /// <param name="profiler">The profiler.</param>
+        /// <param name="profiler">The profiler instance or <c>null</c> to get the current instance.</param>
         public ProfiledDbDataAdapter(IDbDataAdapter wrappedAdapter, IDbProfiler profiler = null)
         {
             if (wrappedAdapter == null)
@@ -64,8 +42,8 @@
                 throw new ArgumentNullException("wrappedAdapter");
             }
 
-            this._adapter = wrappedAdapter;
-            this._profiler = profiler ?? MiniProfiler.Current;
+            _adapter = wrappedAdapter;
+            _profiler = profiler ?? MiniProfiler.Current;
         }
 
         /// <summary>
@@ -76,9 +54,9 @@
         /// <returns>
         /// An array of <see cref="T:System.Data.DataTable"/> objects that contain schema information returned from the data source.
         /// </returns>
-        public new DataTable[] FillSchema(DataSet dataSet, SchemaType schemaType)
+        public DataTable[] FillSchema(DataSet dataSet, SchemaType schemaType)
         {
-            return this._adapter.FillSchema(dataSet, schemaType);
+            return _adapter.FillSchema(dataSet, schemaType);
         }
 
         /// <summary>
@@ -88,7 +66,7 @@
         /// <returns>
         /// The number of rows successfully added to or refreshed in the <see cref="T:System.Data.DataSet"/>. This does not include rows affected by statements that do not return rows.
         /// </returns>
-        public new int Fill(DataSet dataSet)
+        public int Fill(DataSet dataSet)
         {
             /* 
              * The SqlDataAdapter type requires that you use a SqlDataCommand for the various adapter commands and will throw an 
@@ -100,26 +78,26 @@
              * SqlDataAdapter type and would thus work fine with this workaround.
              */
 
-            if (this._profiler == null || !this._profiler.IsActive || !(this._selectCommand is DbCommand))
+            if (_profiler == null || !_profiler.IsActive || !(_selectCommand is DbCommand))
             {
-                return this._adapter.Fill(dataSet);
+                return _adapter.Fill(dataSet);
             }
 
             int result;
-            var cmd = (DbCommand)this._selectCommand;
-            this._profiler.ExecuteStart(cmd, ExecuteType.Reader);
+            var cmd = (DbCommand)_selectCommand;
+            _profiler.ExecuteStart(cmd, ExecuteType.Reader);
             try
             {
-                result = this._adapter.Fill(dataSet);
+                result = _adapter.Fill(dataSet);
             }
             catch (Exception e)
             {
-                this._profiler.OnError(cmd, ExecuteType.Reader, e);
+                _profiler.OnError(cmd, ExecuteType.Reader, e);
                 throw;
             }
             finally
             {
-                this._profiler.ExecuteFinish(cmd, ExecuteType.Reader, TokenReader);
+                _profiler.ExecuteFinish(cmd, ExecuteType.Reader, _tokenReader);
             }
 
             return result;
@@ -131,9 +109,9 @@
         /// <returns>
         /// An array of <see cref="T:System.Data.IDataParameter"/> objects that contains the parameters set by the user.
         /// </returns>
-        public new IDataParameter[] GetFillParameters()
+        public IDataParameter[] GetFillParameters()
         {
-            return this._adapter.GetFillParameters();
+            return _adapter.GetFillParameters();
         }
 
         /// <summary>
@@ -144,7 +122,7 @@
         /// The number of rows successfully updated from the <see cref="T:System.Data.DataSet"/>.
         /// </returns>
         /// <exception cref="T:System.Data.DBConcurrencyException">An attempt to execute an INSERT, UPDATE, or DELETE statement resulted in zero records affected. </exception>
-        public new int Update(DataSet dataSet)
+        public int Update(DataSet dataSet)
         {
             // Don't need this right now and the logic is much more complicated.  Someone else can have at it.
             //	It looks like you could use the SqlDataAdapter RowUpdating and RowUpdated events but that would be provider-specific
@@ -153,51 +131,51 @@
         }
 
         /// <summary>
-        /// Gets or sets whether unmapped source tables or columns are passed with their source names in order to be filtered or to raise an error.
+        /// Indicates or specifies whether unmapped source tables or columns are passed with their source names in order to be filtered or to raise an error.
         /// </summary>
         /// <returns>One of the <see cref="T:System.Data.MissingMappingAction"/> values. The default is Passthrough.</returns>
-        public new MissingMappingAction MissingMappingAction
+        ///   
+        /// <exception cref="T:System.ArgumentException">The value set is not one of the <see cref="T:System.Data.MissingMappingAction"/> values. </exception>
+        public MissingMappingAction MissingMappingAction
         {
-            get { return this._adapter.MissingMappingAction; }
-            set { this._adapter.MissingMappingAction = value; }
+            get { return _adapter.MissingMappingAction; }
+            set { _adapter.MissingMappingAction = value; }
         }
 
         /// <summary>
-        /// Gets or sets whether missing source tables, columns, and their relationships are added to the dataset schema, ignored, or cause an error to be raised.
+        /// Indicates or specifies whether missing source tables, columns, and their relationships are added to the dataset schema, ignored, or cause an error to be raised.
         /// </summary>
         /// <returns>One of the <see cref="T:System.Data.MissingSchemaAction"/> values. The default is Add.</returns>
+        ///   
         /// <exception cref="T:System.ArgumentException">The value set is not one of the <see cref="T:System.Data.MissingSchemaAction"/> values. </exception>
-        public new MissingSchemaAction MissingSchemaAction
+        public MissingSchemaAction MissingSchemaAction
         {
-            get { return this._adapter.MissingSchemaAction; }
-            set { this._adapter.MissingSchemaAction = value; }
+            get { return _adapter.MissingSchemaAction; }
+            set { _adapter.MissingSchemaAction = value; }
         }
 
         /// <summary>
-        /// Gets how a source table is mapped to a dataset table.
+        /// Indicates how a source table is mapped to a dataset table.
         /// </summary>
         /// <returns>A collection that provides the master mapping between the returned records and the <see cref="T:System.Data.DataSet"/>. The default value is an empty collection.</returns>
-        public new ITableMappingCollection TableMappings
+        public ITableMappingCollection TableMappings
         {
-            get { return this._adapter.TableMappings; }
+            get { return _adapter.TableMappings; }
         }
 
         /// <summary>
         /// Gets or sets an SQL statement used to select records in the data source.
         /// </summary>
         /// <returns>An <see cref="T:System.Data.IDbCommand"/> that is used during <see cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)"/> to select records from data source for placement in the data set.</returns>
-        public new IDbCommand SelectCommand
+        public IDbCommand SelectCommand
         {
-            get
-            {
-                return this._selectCommand;
-            }
+            get { return _selectCommand; }
             set
             {
-                this._selectCommand = value;
+                _selectCommand = value;
 
                 var cmd = value as ProfiledDbCommand;
-                this._adapter.SelectCommand = cmd == null ? value : cmd.InternalCommand;
+                _adapter.SelectCommand = cmd == null ? value : cmd.InternalCommand;
             }
         }
 
@@ -205,18 +183,15 @@
         /// Gets or sets an SQL statement used to insert new records into the data source.
         /// </summary>
         /// <returns>An <see cref="T:System.Data.IDbCommand"/> used during <see cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)"/> to insert records in the data source for new rows in the data set.</returns>
-        public new IDbCommand InsertCommand
+        public IDbCommand InsertCommand
         {
-            get
-            {
-                return this._insertCommand;
-            }
+            get { return _insertCommand; }
             set
             {
-                this._insertCommand = value;
+                _insertCommand = value;
 
                 var cmd = value as ProfiledDbCommand;
-                this._adapter.InsertCommand = cmd == null ? value : cmd.InternalCommand;
+                _adapter.InsertCommand = cmd == null ? value : cmd.InternalCommand;
             }
         }
 
@@ -224,18 +199,15 @@
         /// Gets or sets an SQL statement used to update records in the data source.
         /// </summary>
         /// <returns>An <see cref="T:System.Data.IDbCommand"/> used during <see cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)"/> to update records in the data source for modified rows in the data set.</returns>
-        public new IDbCommand UpdateCommand
+        public IDbCommand UpdateCommand
         {
-            get
-            {
-                return this._updateCommand;
-            }
+            get { return _updateCommand; }
             set
             {
-                this._updateCommand = value;
+                _updateCommand = value;
 
                 var cmd = value as ProfiledDbCommand;
-                this._adapter.UpdateCommand = cmd == null ? value : cmd.InternalCommand;
+                _adapter.UpdateCommand = cmd == null ? value : cmd.InternalCommand;
             }
         }
 
@@ -243,18 +215,15 @@
         /// Gets or sets an SQL statement for deleting records from the data set.
         /// </summary>
         /// <returns>An <see cref="T:System.Data.IDbCommand"/> used during <see cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)"/> to delete records in the data source for deleted rows in the data set.</returns>
-        public new IDbCommand DeleteCommand
+        public IDbCommand DeleteCommand
         {
-            get
-            {
-                return this._deleteCommand;
-            }
+            get { return _deleteCommand; }
             set
             {
-                this._deleteCommand = value;
+                _deleteCommand = value;
 
                 var cmd = value as ProfiledDbCommand;
-                this._adapter.DeleteCommand = cmd == null ? value : cmd.InternalCommand;
+                _adapter.DeleteCommand = cmd == null ? value : cmd.InternalCommand;
             }
         }
     }

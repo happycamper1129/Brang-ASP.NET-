@@ -1,99 +1,45 @@
-﻿namespace StackExchange.Profiling.Data
+﻿using System;
+using System.Data.Common;
+using System.Data;
+using StackExchange.Profiling;
+using System.Reflection;
+using System.Reflection.Emit;
+
+#pragma warning disable 1591 // xml doc comments warnings
+
+namespace StackExchange.Profiling.Data
 {
-    using System;
-    using System.Data;
-    using System.Data.Common;
-    using System.Reflection;
-    using System.Reflection.Emit;
-
-    using StackExchange.Profiling;
-
-    /// <summary>
-    /// The profiled database command.
-    /// </summary>
     [System.ComponentModel.DesignerCategory("")]
     public class ProfiledDbCommand : DbCommand, ICloneable
     {
-        /// <summary>
-        /// The bind by name cache.
-        /// </summary>
-        private static Link<Type, Action<IDbCommand, bool>> bindByNameCache;
+        protected DbCommand _cmd;
+        protected DbConnection _conn;
+        protected DbTransaction _tran;
+        protected IDbProfiler _profiler;
 
+        private bool bindByName;
         /// <summary>
-        /// The command.
-        /// </summary>
-        private DbCommand _command;
-
-        /// <summary>
-        /// The connection.
-        /// </summary>
-        private DbConnection _connection;
-
-        /// <summary>
-        /// The transaction.
-        /// </summary>
-        private DbTransaction _transaction;
-
-        /// <summary>
-        /// The profiler.
-        /// </summary>
-        private IDbProfiler _profiler;
-
-        /// <summary>
-        /// bind by name.
-        /// </summary>
-        private bool _bindByName;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether or not to bind by name.
         /// If the underlying command supports BindByName, this sets/clears the underlying
         /// implementation accordingly. This is required to support OracleCommand from dapper-dot-net
         /// </summary>
         public bool BindByName
         {
-            get
-            {
-                return this._bindByName;
-            }
+            get { return bindByName; }
             set
             {
-                if (this._bindByName != value)
+                if (bindByName != value)
                 {
-                    if (this._command != null)
+                    if (_cmd != null)
                     {
-                        var inner = GetBindByName(this._command.GetType());
-                        if (inner != null) inner(this._command, value);
+                        var inner = GetBindByName(_cmd.GetType());
+                        if (inner != null) inner(_cmd, value);
                     }
-                    this._bindByName = value;
+                    bindByName = value;
                 }
             }
         }
-
-        /// <summary>
-        /// Initialises a new instance of the <see cref="ProfiledDbCommand"/> class.
-        /// </summary>
-        /// <param name="command">The command.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="profiler">The profiler.</param>
-        public ProfiledDbCommand(DbCommand command, DbConnection connection, IDbProfiler profiler)
-        {
-            if (command == null) throw new ArgumentNullException("command");
-
-            this._command = command;
-            this._connection = connection;
-
-            if (profiler != null)
-            {
-                this._profiler = profiler;
-            }
-        }
-
-        /// <summary>
-        /// get the binding name.
-        /// </summary>
-        /// <param name="commandType">The command type.</param>
-        /// <returns>The <see cref="Action"/>.</returns>
-        private static Action<IDbCommand, bool> GetBindByName(Type commandType)
+        static Link<Type, Action<IDbCommand, bool>> bindByNameCache;
+        static Action<IDbCommand, bool> GetBindByName(Type commandType)
         {
             if (commandType == null) return null; // GIGO
             Action<IDbCommand, bool> action;
@@ -107,9 +53,10 @@
             MethodInfo setter;
             if (prop != null && prop.CanWrite && prop.PropertyType == typeof(bool)
                 && ((indexers = prop.GetIndexParameters()) == null || indexers.Length == 0)
-                && (setter = prop.GetSetMethod()) != null)
+                && (setter = prop.GetSetMethod()) != null
+                )
             {
-                var method = new DynamicMethod(commandType.Name + "_BindByName", null, new[] { typeof(IDbCommand), typeof(bool) });
+                var method = new DynamicMethod(commandType.Name + "_BindByName", null, new Type[] { typeof(IDbCommand), typeof(bool) });
                 var il = method.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Castclass, commandType);
@@ -118,268 +65,204 @@
                 il.Emit(OpCodes.Ret);
                 action = (Action<IDbCommand, bool>)method.CreateDelegate(typeof(Action<IDbCommand, bool>));
             }
-            
             // cache it            
             Link<Type, Action<IDbCommand, bool>>.TryAdd(ref bindByNameCache, commandType, ref action);
             return action;
         }
 
-        /// <summary>
-        /// Gets or sets the command text.
-        /// </summary>
+
+        public ProfiledDbCommand(DbCommand cmd, DbConnection conn, IDbProfiler profiler)
+        {
+            if (cmd == null) throw new ArgumentNullException("cmd");
+
+            _cmd = cmd;
+            _conn = conn;
+
+            if (profiler != null)
+            {
+                _profiler = profiler;
+            }
+        }
+
         public override string CommandText
         {
-            get { return this._command.CommandText; }
-            set { this._command.CommandText = value; }
+            get { return _cmd.CommandText; }
+            set { _cmd.CommandText = value; }
         }
 
-        /// <summary>
-        /// Gets or sets the command timeout.
-        /// </summary>
         public override int CommandTimeout
         {
-            get { return this._command.CommandTimeout; }
-            set { this._command.CommandTimeout = value; }
+            get { return _cmd.CommandTimeout; }
+            set { _cmd.CommandTimeout = value; }
         }
 
-        /// <summary>
-        /// Gets or sets the command type.
-        /// </summary>
         public override CommandType CommandType
         {
-            get { return this._command.CommandType; }
-            set { this._command.CommandType = value; }
+            get { return _cmd.CommandType; }
+            set { _cmd.CommandType = value; }
         }
 
-        /// <summary>
-        /// Gets or sets the database connection.
-        /// </summary>
         protected override DbConnection DbConnection
         {
-            get
-            {
-                return this._connection;
-            }
+            get { return _conn; }
             set
             {
                 // TODO: we need a way to grab the IDbProfiler which may not be the same as the MiniProfiler, it could be wrapped
                 // allow for command reuse, it is clear the connection is going to need to be reset
                 if (MiniProfiler.Current != null)
                 {
-                    this._profiler = MiniProfiler.Current;
+                    _profiler = MiniProfiler.Current;
                 }
 
-                this._connection = value;
+                _conn = value;
                 var awesomeConn = value as ProfiledDbConnection;
-                this._command.Connection = awesomeConn == null ? value : awesomeConn.WrappedConnection;
+                _cmd.Connection = awesomeConn == null ? value : awesomeConn.WrappedConnection;
             }
         }
 
-        /// <summary>
-        /// Gets the database parameter collection.
-        /// </summary>
         protected override DbParameterCollection DbParameterCollection
         {
-            get { return this._command.Parameters; }
+            get { return _cmd.Parameters; }
         }
 
-        /// <summary>
-        /// Gets or sets the database transaction.
-        /// </summary>
         protected override DbTransaction DbTransaction
         {
-            get
-            {
-                return this._transaction;
-            }
+            get { return _tran; }
             set
             {
-                this._transaction = value;
+                this._tran = value;
                 var awesomeTran = value as ProfiledDbTransaction;
-                this._command.Transaction = awesomeTran == null ? value : awesomeTran.WrappedTransaction;
+                _cmd.Transaction = awesomeTran == null ? value : awesomeTran.WrappedTransaction;
             }
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the command is design time visible.
-        /// </summary>
         public override bool DesignTimeVisible
         {
-            get { return this._command.DesignTimeVisible; }
-            set { this._command.DesignTimeVisible = value; }
+            get { return _cmd.DesignTimeVisible; }
+            set { _cmd.DesignTimeVisible = value; }
         }
 
-        /// <summary>
-        /// Gets or sets the updated row source.
-        /// </summary>
         public override UpdateRowSource UpdatedRowSource
         {
-            get { return this._command.UpdatedRowSource; }
-            set { this._command.UpdatedRowSource = value; }
+            get { return _cmd.UpdatedRowSource; }
+            set { _cmd.UpdatedRowSource = value; }
         }
 
-        /// <summary>
-        /// The execute database data reader.
-        /// </summary>
-        /// <param name="behavior">The behaviour.</param>
-        /// <returns>the resulting <see cref="DbDataReader"/>.</returns>
+
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
-            if (this._profiler == null || !this._profiler.IsActive)
+            if (_profiler == null || !_profiler.IsActive)
             {
-                return this._command.ExecuteReader(behavior);
+                return _cmd.ExecuteReader(behavior);
             }
 
             DbDataReader result = null;
-            this._profiler.ExecuteStart(this, ExecuteType.Reader);
+            _profiler.ExecuteStart(this, ExecuteType.Reader);
             try
             {
-                result = this._command.ExecuteReader(behavior);
-                result = new ProfiledDbDataReader(result, this._connection, this._profiler);
+                result = _cmd.ExecuteReader(behavior);
+                result = new ProfiledDbDataReader(result, _conn, _profiler);
             }
             catch (Exception e)
             {
-                this._profiler.OnError(this, ExecuteType.Reader, e);
+                _profiler.OnError(this, ExecuteType.Reader, e);
                 throw;
             }
             finally
             {
-                this._profiler.ExecuteFinish(this, ExecuteType.Reader, result);
+                _profiler.ExecuteFinish(this, ExecuteType.Reader, result);
             }
             return result;
         }
 
-        /// <summary>
-        /// execute a non query.
-        /// </summary>
-        /// <returns>the number of affected records.</returns>
         public override int ExecuteNonQuery()
         {
-            if (this._profiler == null || !this._profiler.IsActive)
+            if (_profiler == null || !_profiler.IsActive)
             {
-                return this._command.ExecuteNonQuery();
+                return _cmd.ExecuteNonQuery();
             }
 
             int result;
 
-            this._profiler.ExecuteStart(this, ExecuteType.NonQuery);
+            _profiler.ExecuteStart(this, ExecuteType.NonQuery);
             try
             {
-                result = this._command.ExecuteNonQuery();
+                result = _cmd.ExecuteNonQuery();
             }
             catch (Exception e)
             {
-                this._profiler.OnError(this, ExecuteType.NonQuery, e);
+                _profiler.OnError(this, ExecuteType.NonQuery, e);
                 throw;
             }
             finally
             {
-                this._profiler.ExecuteFinish(this, ExecuteType.NonQuery, null);
+                _profiler.ExecuteFinish(this, ExecuteType.NonQuery, null);
             }
             return result;
         }
 
-        /// <summary>
-        /// execute the scalar.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="object"/>.
-        /// </returns>
         public override object ExecuteScalar()
         {
-            if (this._profiler == null || !this._profiler.IsActive)
+            if (_profiler == null || !_profiler.IsActive)
             {
-                return this._command.ExecuteScalar();
+                return _cmd.ExecuteScalar();
             }
 
             object result;
-            this._profiler.ExecuteStart(this, ExecuteType.Scalar);
+            _profiler.ExecuteStart(this, ExecuteType.Scalar);
             try
             {
-                result = this._command.ExecuteScalar();
+                result = _cmd.ExecuteScalar();
             }
             catch (Exception e)
             {
-                this._profiler.OnError(this, ExecuteType.Scalar, e);
+                _profiler.OnError(this, ExecuteType.Scalar, e);
                 throw;
             }
             finally
             {
-                this._profiler.ExecuteFinish(this, ExecuteType.Scalar, null);
+                _profiler.ExecuteFinish(this, ExecuteType.Scalar, null);
             }
             return result;
         }
 
-        /// <summary>
-        /// cancel the command.
-        /// </summary>
         public override void Cancel()
         {
-            this._command.Cancel();
+            _cmd.Cancel();
         }
 
-        /// <summary>
-        /// prepare the command.
-        /// </summary>
         public override void Prepare()
         {
-            this._command.Prepare();
+            _cmd.Prepare();
         }
 
-        /// <summary>
-        /// create a database parameter.
-        /// </summary>
-        /// <returns>The <see cref="DbParameter"/>.</returns>
         protected override DbParameter CreateDbParameter()
         {
-            return this._command.CreateParameter();
+            return _cmd.CreateParameter();
         }
 
-        /// <summary>
-        /// dispose the command.
-        /// </summary>
-        /// <param name="disposing">false if this is being disposed in a <c>finalizer</c>.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && this._command != null)
+            if (disposing && _cmd != null)
             {
-                this._command.Dispose();
+                _cmd.Dispose();
             }
-            this._command = null;
+            _cmd = null;
             base.Dispose(disposing);
         }
 
-        /// <summary>
-        /// Gets the internal command.
-        /// </summary>
-        public DbCommand InternalCommand
-        {
-            get
-            {
-                return this._command;
-            }
-        }
+        public DbCommand InternalCommand { get { return _cmd; } }
 
-        /// <summary>
-        /// clone the command, entity framework expects this behaviour.
-        /// </summary>
-        /// <returns>The <see cref="ProfiledDbCommand"/>.</returns>
+
         public ProfiledDbCommand Clone()
         { // EF expects ICloneable
-            var tail = this._command as ICloneable;
-            if (tail == null) throw new NotSupportedException("Underlying " + this._command.GetType().Name + " is not cloneable");
-            return new ProfiledDbCommand((DbCommand)tail.Clone(), this._connection, this._profiler);
+            ICloneable tail = _cmd as ICloneable;
+            if (tail == null) throw new NotSupportedException("Underlying " + _cmd.GetType().Name + " is not cloneable");
+            return new ProfiledDbCommand((DbCommand)tail.Clone(), _conn, _profiler);
         }
+        object ICloneable.Clone() { return Clone(); }
 
-        /// <summary>
-        /// The clone.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="object"/>.
-        /// </returns>
-        object ICloneable.Clone()
-        {
-            return this.Clone();
-        }
     }
 }
+
+#pragma warning restore 1591 // xml doc comments warnings

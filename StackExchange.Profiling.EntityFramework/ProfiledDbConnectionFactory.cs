@@ -1,37 +1,35 @@
-﻿namespace StackExchange.Profiling.Data
-{
-    using System.Data.Entity.Infrastructure;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Data.Entity.Infrastructure;
 
+namespace StackExchange.Profiling.Data
+{
     /// <summary>
-    /// Connection factory used for EF Code First <c>DbContext</c> API
+    /// Connection factory used for EF Code First DbContext API
     /// </summary>
     public class ProfiledDbConnectionFactory : IDbConnectionFactory
     {
-        /// <summary>
-        /// The wrapped connection factory.
-        /// </summary>
-        private readonly IDbConnectionFactory _wrapped;
+        IDbConnectionFactory _wrapped;
 
         /// <summary>
-        /// Initialises a new instance of the <see cref="ProfiledDbConnectionFactory"/> class. 
         /// Create a profiled connection factory
         /// </summary>
-        /// <param name="wrapped">
-        /// The underlying connection that needs to be profiled
-        /// </param>
+        /// <param name="wrapped">The underlying connection that needs to be profiled</param>
         public ProfiledDbConnectionFactory(IDbConnectionFactory wrapped)
         {
-            this._wrapped = wrapped;
+            _wrapped = wrapped;
         }
 
         /// <summary>
         /// Create a wrapped connection for profiling purposes 
         /// </summary>
-        /// <param name="nameOrConnectionString">the name or connection string.</param>
-        /// <returns>the connection</returns>
+        /// <param name="nameOrConnectionString"></param>
+        /// <returns></returns>
         public System.Data.Common.DbConnection CreateConnection(string nameOrConnectionString)
         {
-            return new EFProfiledDbConnection(this._wrapped.CreateConnection(nameOrConnectionString), MiniProfiler.Current);
+            return new EFProfiledDbConnection(_wrapped.CreateConnection(nameOrConnectionString), MiniProfiler.Current);
         }
     }
 }

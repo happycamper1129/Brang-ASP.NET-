@@ -1,69 +1,49 @@
-﻿namespace StackExchange.Profiling.Data
-{
-    using System;
-    using System.Data.Common;
-    using System.Reflection;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using StackExchange.Profiling.Data;
+using System.Data.Common;
+using System.Reflection;
 
-    /// <summary>
-    /// The entity framework profiled database connection.
-    /// </summary>
+namespace StackExchange.Profiling.Data
+{
     public class EFProfiledDbConnection : ProfiledDbConnection
     {
-        /// <summary>
-        /// The rip inner provider.
-        /// </summary>
-        private static readonly Func<DbConnection, DbProviderFactory> RipInnerProvider =
-            (Func<DbConnection, DbProviderFactory>)
-            Delegate.CreateDelegate(
-                typeof(Func<DbConnection, DbProviderFactory>),
-                typeof(DbConnection).GetProperty("DbProviderFactory", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).GetGetMethod(true));
 
-        /// <summary>
-        /// The factory.
-        /// </summary>
         private DbProviderFactory _factory;
+        private static readonly Func<DbConnection, DbProviderFactory> ripInnerProvider =
+              (Func<DbConnection, DbProviderFactory>)Delegate.CreateDelegate(typeof(Func<DbConnection, DbProviderFactory>),
+              typeof(DbConnection).GetProperty("DbProviderFactory", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+              .GetGetMethod(true));
 
-        /// <summary>
-        /// Initialises a new instance of the <see cref="EFProfiledDbConnection"/> class.
-        /// </summary>
-        /// <param name="connection">
-        /// The connection.
-        /// </param>
-        /// <param name="profiler">
-        /// The profiler.
-        /// </param>
-        public EFProfiledDbConnection(DbConnection connection, IDbProfiler profiler)
-            : base(connection, profiler)
+
+        public EFProfiledDbConnection(DbConnection connection, IDbProfiler profiler) : base(connection, profiler)
         {
+        
         }
 
-        /// <summary>
-        /// Gets the database provider factory.
-        /// </summary>
+
         protected override DbProviderFactory DbProviderFactory
         {
             get
             {
-                if (this._factory != null) 
-                    return this._factory;
-                DbProviderFactory tail = RipInnerProvider(this._connection);
-               
-                var field = EFProviderUtilities.ResolveFactoryTypeOrOriginal(tail.GetType()).GetField("Instance", BindingFlags.Public | BindingFlags.Static);
-                if (field != null)
-                    this._factory = (DbProviderFactory)field.GetValue(null);
-                
-                return this._factory;
+                if (_factory != null) return _factory;
+                DbProviderFactory tail = ripInnerProvider(_conn);
+                _factory = (DbProviderFactory)EFProviderUtilities.ResolveFactoryTypeOrOriginal(tail.GetType())
+                                .GetField("Instance", BindingFlags.Public | BindingFlags.Static)
+                                .GetValue(null);
+                return _factory;
             }
         }
 
-        /// <summary>
-        /// dispose the connection.
-        /// </summary>
-        /// <param name="disposing">false if called from a <c>finalizer</c></param>
+
+
         protected override void Dispose(bool disposing)
         {
-            this._factory = null;
+            _factory = null;
             base.Dispose(disposing);
         }
+
     }
 }

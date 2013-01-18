@@ -1,25 +1,24 @@
-﻿namespace SampleWeb.Controllers
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using StackExchange.Profiling;
+using System.Threading;
+using SampleWeb.SampleService;
+using System.Data.Entity.Infrastructure;
+using System.Web.UI;
+
+namespace SampleWeb.Controllers
 {
-    using System;
-    using System.Threading;
-    using System.Web.Mvc;
-    using System.Web.UI;
-
-    using SampleWeb.SampleService;
-
-    using StackExchange.Profiling;
-
     /// <summary>
     /// This controller is essentially the same as the home controller,
     /// except all methods flow over WCF.
     /// </summary>
-    [OutputCache(Location = OutputCacheLocation.None)]
+    [OutputCache(Location=OutputCacheLocation.None)]
     public class WcfSampleController : BaseController
     {
-        /// <summary>
-        /// default view.
-        /// </summary>
-        /// <returns>The <see cref="ActionResult"/>.</returns>
+        
         public ActionResult Index()
         {
             var profiler = MiniProfiler.Current;
@@ -41,15 +40,9 @@
                 }
             }
 
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// about the WCF sample.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="ActionResult"/>.
-        /// </returns>
         public ActionResult About()
         {
             // prevent this specific route from being profiled
@@ -57,16 +50,12 @@
 
             using (MiniProfiler.Current.Step("WCF Call"))
             {
-                this.MakeSampleServiceCall(proxy => proxy.ServiceMethodThatIsNotProfiled());
+                MakeSampleServiceCall(proxy => proxy.ServiceMethodThatIsNotProfiled());
             }
 
-            return this.View();
+            return View();
         }
 
-        /// <summary>
-        /// fetch the route hits.
-        /// </summary>
-        /// <returns>The <see cref="ActionResult"/>.</returns>
         public ActionResult FetchRouteHits()
         {
             var profiler = MiniProfiler.Current;
@@ -74,63 +63,43 @@
             using (profiler.Step("WCF Call"))
             {
                 var result = MakeSampleServiceCall(proxy => proxy.FetchRouteHits());
-                return this.Json(result, JsonRequestBehavior.AllowGet);
+                return Json(result, JsonRequestBehavior.AllowGet);
             }
         }
 
-        /// <summary>
-        /// massive nesting view.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="ActionResult"/>.
-        /// </returns>
         public ActionResult MassiveNesting()
         {
-            this.MakeSampleServiceCall(proxy => proxy.MassiveNesting());
+            MakeSampleServiceCall(proxy => proxy.MassiveNesting());
 
-            return this.Content("MassiveNesting completed");
+            return Content("MassiveNesting completed");
         }
 
-        /// <summary>
-        /// massive nesting 2.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="ActionResult"/>.
-        /// </returns>
         public ActionResult MassiveNesting2()
         {
-            this.MakeSampleServiceCall(proxy => proxy.MassiveNesting2());
+            MakeSampleServiceCall(proxy => proxy.MassiveNesting2());
 
-            return this.Content("MassiveNesting2 completed");
+            return Content("MassiveNesting2 completed");
         }
 
-        /// <summary>
-        /// duplicated queries.
-        /// </summary>
-        /// <returns>The <see cref="ActionResult"/>.</returns>
         public ActionResult Duplicated()
         {
-            this.MakeSampleServiceCall(proxy => proxy.Duplicated());
+            MakeSampleServiceCall(proxy => proxy.Duplicated());
 
-            return this.Content("Duplicate queries completed");
+            return Content("Duplicate queries completed");
         }
 
-        /// <summary>
-        /// The EF code first.
-        /// </summary>
-        /// <returns>The <see cref="ActionResult"/>.</returns>
         public ActionResult EFCodeFirst()
         {
-            return this.Content("Not implemented in this sample");
+            return Content("Not implemented in this sample");
         }
 
         /// <summary>
         /// Wrapper around our service call to ensure it is being correctly disposed
         /// </summary>
-        /// <typeparam name="TResult">the service call type.</typeparam>
-        /// <param name="serviceCall">the service call delegate</param>
-        /// <returns>the result of the service call, with the error information thrown correctly otherwise.</returns>
-        private TResult MakeSampleServiceCall<TResult>(Func<SampleServiceClient, TResult> serviceCall)
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="serviceCall"></param>
+        /// <returns></returns>
+        private TResult MakeSampleServiceCall<TResult>(Func<SampleService.SampleServiceClient, TResult> serviceCall)
         {
             SampleServiceClient client = null;
 

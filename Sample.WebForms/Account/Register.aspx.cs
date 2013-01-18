@@ -1,34 +1,27 @@
-﻿namespace Sample.WebForms.Account
-{
-    using System;
-    using System.Web.Security;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.WebControls;
 
-    /// <summary>
-    /// register a new user.
-    /// </summary>
+namespace Sample.WebForms.Account
+{
     public partial class Register : System.Web.UI.Page
     {
-        /// <summary>
-        /// The page load.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="eventArguments">The event arguments.</param>
-        protected void Page_Load(object sender, EventArgs eventArguments)
+
+        protected void Page_Load(object sender, EventArgs e)
         {
-            this.RegisterUser.ContinueDestinationPageUrl = Request.QueryString["ReturnUrl"];
+            RegisterUser.ContinueDestinationPageUrl = Request.QueryString["ReturnUrl"];
         }
 
-        /// <summary>
-        /// register the created user.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="eventArguments">The event arguments.</param>
-        protected void RegisterUser_CreatedUser(object sender, EventArgs eventArguments)
+        protected void RegisterUser_CreatedUser(object sender, EventArgs e)
         {
-            FormsAuthentication.SetAuthCookie(this.RegisterUser.UserName, false /* createPersistentCookie */);
+            FormsAuthentication.SetAuthCookie(RegisterUser.UserName, false /* createPersistentCookie */);
 
-            string continueUrl = this.RegisterUser.ContinueDestinationPageUrl;
-            if (string.IsNullOrEmpty(continueUrl))
+            string continueUrl = RegisterUser.ContinueDestinationPageUrl;
+            if (String.IsNullOrEmpty(continueUrl))
             {
                 continueUrl = "~/";
             }

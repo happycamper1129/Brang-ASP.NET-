@@ -1,12 +1,12 @@
-﻿namespace StackExchange.Profiling
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Runtime.Serialization;
-    using System.Text;
-    using System.Web;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Web;
+using System.Runtime.Serialization;
 
+namespace StackExchange.Profiling
+{
     /// <summary>
     /// Times collected from the client
     /// </summary>
@@ -14,40 +14,47 @@
     public class ClientTimings
     {
         /// <summary>
-        /// The client timing prefix.
+        /// A client timing probe
         /// </summary>
-        private const string ClientTimingPrefix = "clientPerformance[timing][";
+        [DataContract]
+        public class ClientTiming
+        {
+            /// <summary>
+            /// 
+            /// </summary>
+            [DataMember(Order = 1)]
+            public string Name { get; set; }
 
-        /// <summary>
-        /// The client probes prefix.
-        /// </summary>
-        private const string ClientProbesPrefix = "clientProbes[";
+            /// <summary>
+            /// 
+            /// </summary>
+            [DataMember(Order = 2)]
+            public Decimal Start { get; set; }
 
-        /// <summary>
-        /// Gets or sets the list of client side timings
-        /// </summary>
-        [DataMember(Order = 2)]
-        public List<ClientTiming> Timings { get; set; }
+            /// <summary>
+            /// 
+            /// </summary>
+            [DataMember(Order = 3)]
+            public Decimal Duration { get; set; }
+        }
 
-        /// <summary>
-        /// Gets or sets the redirect count.
-        /// </summary>
-        [DataMember(Order = 1)]
-        public int RedirectCount { get; set; }
+        const string clientTimingPrefix = "clientPerformance[timing][";
+        const string clientProbesPrefix = "clientProbes[";
 
         /// <summary>
         /// Returns null if there is not client timing stuff
         /// </summary>
-        /// <param name="request">The request.</param>
-        /// <returns>the client timings.</returns>
+        /// <param name="request"></param>
+        /// <returns></returns>
         public static ClientTimings FromRequest(HttpRequest request)
         {
+
             ClientTimings timing = null;
             long navigationStart = 0;
-            long.TryParse(request[ClientTimingPrefix + "navigationStart]"], out navigationStart);
+            long.TryParse(request[clientTimingPrefix + "navigationStart]"], out navigationStart);
             if (navigationStart > 0)
             {
-                var timings = new List<ClientTiming>();
+                List<ClientTiming> timings = new List<ClientTiming>();
 
                 timing = new ClientTimings();
 
@@ -55,35 +62,25 @@
                 int.TryParse(request["clientPerformance[navigation][redirectCount]"], out redirectCount);
                 timing.RedirectCount = redirectCount;
 
-                var clientPerf = new Dictionary<string, ClientTiming>();
-                var clientProbes = new Dictionary<int, ClientTiming>();
+                Dictionary<string, ClientTiming> clientPerf = new Dictionary<string, ClientTiming>();
+                Dictionary<int, ClientTiming> clientProbes = new Dictionary<int, ClientTiming>(); 
 
-                foreach (
-                    string key in
-                        request.Form.Keys.Cast<string>()
-                               .OrderBy(i => i.IndexOf("Start]", StringComparison.Ordinal) > 0 ? "_" + i : i))
+                foreach (string key in request.Form.Keys.Cast<string>().OrderBy(i => i.IndexOf("Start]") > 0 ? "_" + i : i ))
                 {
-                    if (key.StartsWith(ClientTimingPrefix))
+                    if (key.StartsWith(clientTimingPrefix))
                     {
                         long val = 0;
                         long.TryParse(request[key], out val);
                         val -= navigationStart;
 
-                        string parsedName = key.Substring(
-                            ClientTimingPrefix.Length, (key.Length - 1) - ClientTimingPrefix.Length);
-
+                        string parsedName = key.Substring(clientTimingPrefix.Length, (key.Length-1) - clientTimingPrefix.Length);
                         // just ignore stuff that is negative ... not relevant
                         if (val > 0)
                         {
                             if (parsedName.EndsWith("Start"))
                             {
                                 var shortName = parsedName.Substring(0, parsedName.Length - 5);
-                                clientPerf[shortName] = new ClientTiming
-                                                            {
-                                                                Duration = -1,
-                                                                Name = parsedName,
-                                                                Start = val
-                                                            };
+                                clientPerf[shortName] = new ClientTiming {Duration = -1, Name = parsedName, Start = val};
                             }
                             else if (parsedName.EndsWith("End"))
                             {
@@ -102,10 +99,10 @@
                         }
                     }
 
-                    if (key.StartsWith(ClientProbesPrefix))
+                    if (key.StartsWith(clientProbesPrefix))
                     { 
                         int probeId;
-                        if (key.IndexOf("]", StringComparison.Ordinal) > 0 && int.TryParse(key.Substring(ClientProbesPrefix.Length, key.IndexOf("]", StringComparison.Ordinal) - ClientProbesPrefix.Length), out probeId))
+                        if (key.IndexOf("]") > 0 && int.TryParse(key.Substring(clientProbesPrefix.Length, key.IndexOf("]") - clientProbesPrefix.Length), out probeId))
                         {
                             ClientTiming t;
                             if (!clientProbes.TryGetValue(probeId, out t))
@@ -118,7 +115,6 @@
                             {
                                 t.Name = request[key];
                             }
-
                             if (key.EndsWith("[d]")) 
                             {
                                 long val = 0;
@@ -156,64 +152,50 @@
                 {
                     item.Name = SentenceCase(item.Name);
                 }
-
                 timings.AddRange(clientPerf.Values);
                 timing.Timings = timings.OrderBy(t => t.Start).ToList();
             }
-
             return timing;
+
         }
 
-        /// <summary>
-        /// convert to sentence case.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>the converted string.</returns>
-        private static string SentenceCase(string value)
+        private static string SentenceCase(string s)
         {
-            var sb = new StringBuilder();
-            for (int i = 0; i < value.Length; i++)
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < s.Length; i++)
             {
                 if (i == 0)
                 {
-                    sb.Append(char.ToUpper(value[0]));
+                    sb.Append(Char.ToUpper(s[0]));
                     continue;
                 }
-                
-                if (value[i] == char.ToUpper(value[i])) 
+                else if (s[i] == char.ToUpper(s[i])) 
                 {
                     sb.Append(' ');
                 }
-
-                sb.Append(value[i]);
+                sb.Append(s[i]);
             }
-
             return sb.ToString();
+        }
+        
+        /// <summary>
+        /// Stores information about client perf
+        /// </summary>
+        public ClientTimings()
+        {
         }
 
         /// <summary>
-        /// A client timing probe
+        /// 
         /// </summary>
-        [DataContract]
-        public class ClientTiming
-        {
-            /// <summary>
-            /// Gets or sets the name.
-            /// </summary>
-            [DataMember(Order = 1)]
-            public string Name { get; set; }
+        [DataMember(Order = 1)]
+        public int RedirectCount { get; set; }
 
-            /// <summary>
-            /// Gets or sets the start.
-            /// </summary>
-            [DataMember(Order = 2)]
-            public decimal Start { get; set; }
+        /// <summary>
+        /// List of client side timings
+        /// </summary>
+        [DataMember(Order = 2)]
+        public List<ClientTiming> Timings { get; set; }
 
-            /// <summary>
-            /// Gets or sets the duration.
-            /// </summary>
-            [DataMember(Order = 3)]
-            public decimal Duration { get; set; }
-        }
     }
 }
