@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SampleWeb
+﻿namespace SampleWeb
 {
     using System.IO;
     using System.Linq;
@@ -148,15 +146,7 @@ namespace SampleWeb
             // we use it on http://stackoverflow.com to check that the request cookies belong to a valid developer.
             MiniProfiler.Settings.Results_Authorize = request =>
             {
-                // you may implement this if you need to restrict visibility of profiling on a per request basis
-
-                // for example, for this specific path, we'll only allow profiling if a query parameter is set
-                if ("/Home/ResultsAuthorization".Equals(request.Url.LocalPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return (request.Url.Query ?? "").ToLower().Contains("isauthorized");
-                }
-
-                // all other paths can check our global switch
+                // you may implement this if you need to restrict visibility of profiling on a per request basis 
                 return !DisableProfilingResults; 
             };
 

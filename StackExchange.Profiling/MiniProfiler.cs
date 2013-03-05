@@ -323,17 +323,9 @@
         /// <param name="useExistingjQuery">Whether MiniProfiler should attempt to load its own version of jQuery, or rely on a version previously loaded on the page</param>
         /// <param name="samplingOnly">The sampling Only.</param>
         /// <returns>Script and link elements normally; an empty string when there is no active profiling session.</returns>
-        public static IHtmlString RenderIncludes(
-            RenderPosition? position = null, 
-            bool? showTrivial = null, 
-            bool? showTimeWithChildren = null, 
-            int? maxTracesToShow = null, 
-            bool? showControls = null,
-            bool? useExistingjQuery = null, // TODO: we need to deprecate this
-            bool samplingOnly = false,      // TODO: can we remove this?
-            bool? startHidden = null)
+        public static IHtmlString RenderIncludes(RenderPosition? position = null, bool? showTrivial = null, bool? showTimeWithChildren = null, int? maxTracesToShow = null, bool? showControls = null, bool? useExistingjQuery = null, bool samplingOnly = false)
         {
-            return UI.MiniProfilerHandler.RenderIncludes(Current, position, showTrivial, showTimeWithChildren, maxTracesToShow, showControls, startHidden);
+            return UI.MiniProfilerHandler.RenderIncludes(Current, position, showTrivial, showTimeWithChildren, maxTracesToShow, showControls);
         }
 
         /// <summary>
