@@ -136,7 +136,7 @@ func results(w http.ResponseWriter, r *http.Request) {
 			Duration: p.DurationMilliseconds,
 			Path:     PATH,
 			Json:     template.JS(j),
-			Includes: p.Includes(),
+			Includes: Includes(r, p),
 			Version:  Version,
 		}
 
@@ -242,8 +242,8 @@ func static(w http.ResponseWriter, r *http.Request) {
 }
 
 // Includes renders the JavaScript includes for this request, if enabled.
-func (p *Profile) Includes() template.HTML {
-	if !Enable(p.r) {
+func Includes(r *http.Request, p *Profile) template.HTML {
+	if !Enable(r) {
 		return ""
 	}
 
@@ -296,9 +296,13 @@ func NewHandler(f func(*Profile, http.ResponseWriter, *http.Request)) Handler {
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.p = NewProfile(w, r, FuncName(h.f))
-	h.f(h.p, w, r)
-	h.p.Finalize()
+	if Enable(r) {
+		h.p = NewProfile(w, r, FuncName(h.f))
+		h.f(h.p, w, r)
+		h.p.Finalize()
+	} else {
+		h.f(nil, w, r)
+	}
 }
 
 // Since returns the number of milliseconds since t.
