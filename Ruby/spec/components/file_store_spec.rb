@@ -1,3 +1,4 @@
+
 require 'spec_helper'
 require 'rack-mini-profiler'
 require 'mini_profiler/page_timer_struct'

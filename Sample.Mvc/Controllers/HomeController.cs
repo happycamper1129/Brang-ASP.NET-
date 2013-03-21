@@ -1,6 +1,4 @@
-﻿using SampleWeb.EfModelFirst;
-
-namespace SampleWeb.Controllers
+﻿namespace SampleWeb.Controllers
 {
     using System;
     using System.Data.Common;
@@ -119,45 +117,6 @@ namespace SampleWeb.Controllers
         public ActionResult Xhtml()
         {
             return View();
-        }
-
-        public ActionResult EfModelFirst()
-        {
-            int count;
-
-            SampleEfModelFirstEntities context = null;
-            using (MiniProfiler.Current.Step("EF Model First Stuff"))
-            {
-                try
-                {
-                    using (MiniProfiler.Current.Step("Create Context"))
-                        context = new SampleEfModelFirstEntities(); 
-
-                    // this is not correct, as the count from this assignment is never actually used
-                    using (MiniProfiler.Current.Step("First count"))
-                        count = context.ModelPersons.Count();
-
-                    using (MiniProfiler.Current.Step("Insertion"))
-                    {
-                        var p = new ModelPerson { Name = "sam" };
-                        context.ModelPersons.Add(p);
-                        context.SaveChanges();
-                    }
-
-                    // this count is actually used.
-                    using (MiniProfiler.Current.Step("Second count"))
-                        count = context.ModelPersons.Count();
-                }
-                finally
-                {
-                    if (context != null)
-                    {
-                        context.Dispose();
-                    }
-                }
-            }
-
-            return Content("EF Model First complete - count: " + count);
         }
 
         /// <summary>
