@@ -85,13 +85,11 @@ type Context struct {
 
 func (c Context) Call(service, method string, in, out appengine_internal.ProtoMessage, opts *appengine_internal.CallOptions) error {
 	err := c.Context.Call(service, method, in, out, opts)
-	if service != "__go__" {
-		v := c.Context.Stats.RPCStats[len(c.Context.Stats.RPCStats)-1]
-		c.P.AddCustomTiming("RPC", &miniprofiler.CustomTiming{
-			StartMilliseconds:    float64(v.Offset.Nanoseconds()) / 1000000,
-			DurationMilliseconds: float64(v.Duration.Nanoseconds()) / 1000000,
-		})
-	}
+	v := c.Context.Stats.RPCStats[len(c.Context.Stats.RPCStats)-1]
+	c.P.AddCustomTiming("RPC", &miniprofiler.CustomTiming{
+		StartMilliseconds:    float64(v.Offset.Nanoseconds()) / 1000000,
+		DurationMilliseconds: float64(v.Duration.Nanoseconds()) / 1000000,
+	})
 	return err
 }
 
