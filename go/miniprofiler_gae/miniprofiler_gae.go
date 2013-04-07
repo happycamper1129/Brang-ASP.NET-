@@ -80,38 +80,33 @@ func GetMemcache(r *http.Request, id string) *miniprofiler.Profile {
 
 type Context struct {
 	appstats.Context
-	*miniprofiler.Profile
+	P *miniprofiler.Profile
 }
 
 func (c Context) Call(service, method string, in, out appengine_internal.ProtoMessage, opts *appengine_internal.CallOptions) error {
 	err := c.Context.Call(service, method, in, out, opts)
-	if service != "__go__" {
-		v := c.Context.Stats.RPCStats[len(c.Context.Stats.RPCStats)-1]
-		c.AddCustomTiming("RPC", &miniprofiler.CustomTiming{
-			StartMilliseconds:    float64(v.Offset.Nanoseconds()) / 1000000,
-			DurationMilliseconds: float64(v.Duration.Nanoseconds()) / 1000000,
-		})
-	}
+	v := c.Context.Stats.RPCStats[len(c.Context.Stats.RPCStats)-1]
+	c.P.AddCustomTiming("RPC", &miniprofiler.CustomTiming{
+		StartMilliseconds:    float64(v.Offset.Nanoseconds()) / 1000000,
+		DurationMilliseconds: float64(v.Duration.Nanoseconds()) / 1000000,
+	})
 	return err
 }
 
 // NewHandler returns a profiled, appstats-aware appengine.Context.
 func NewHandler(f func(Context, http.ResponseWriter, *http.Request)) appstats.Handler {
 	return appstats.NewHandler(func(c appengine.Context, w http.ResponseWriter, r *http.Request) {
-		h := miniprofiler.NewHandler(func(p *miniprofiler.Profile, w http.ResponseWriter, r *http.Request) {
-			pc := Context{
-				Context: c.(appstats.Context),
-				Profile:  p,
-			}
-			p.Name = miniprofiler.FuncName(f)
-			f(pc, w, r)
+		pc := Context{
+			Context: c.(appstats.Context),
+		}
+		pc.P = miniprofiler.NewProfile(w, r, miniprofiler.FuncName(f))
+		f(pc, w, r)
 
-			if pc.Profile.Root != nil {
-				pc.Profile.CustomLink = pc.URL()
-				pc.Profile.CustomLinkName = "appstats"
-			}
-		})
-		h.ServeHTTP(w, r)
+		if pc.P.Root != nil {
+			pc.P.CustomLink = pc.URL()
+			pc.P.CustomLinkName = "appstats"
+			pc.P.Finalize()
+		}
 	})
 }
 
