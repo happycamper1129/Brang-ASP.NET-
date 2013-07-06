@@ -79,7 +79,7 @@ RedisStore/MemcacheStore work in multi process and multi machine environments (R
 
 Additionally you may implement an AbstractStore for your own provider. 
 
-## User result segragation
+## User result segregation
 
 MiniProfiler will attempt to keep all user results isolated, out-of-the-box the user provider uses the ip address: 
 
@@ -111,7 +111,13 @@ You can set configuration options using the configuration accessor on Rack::Mini
 ```
 # Have Mini Profiler show up on the right
 Rack::MiniProfiler.config.position = 'right'
+# Have Mini Profiler start in hidden mode - display with short cut (defaulted to 'Alt+P')
+Rack::MiniProfiler.config.start_hidden = true
+# Don't collect backtraces on SQL queries that take less than 5 ms to execute
+# (necessary on Rubies earlier than 2.0)
+Rack::MiniProfiler.config.backtrace_threshold_ms = 5
 ```
+
 
 In a Rails app, this can be done conveniently in an initializer such as config/initializers/mini_profiler.rb.
 
@@ -154,8 +160,9 @@ end
 * backtrace_filter - a regex you can use to filter out unwanted lines from the backtraces
 * toggle_shortcut (default Alt+P) - a jquery.hotkeys.js-style keyboard shortcut, used to toggle the mini_profiler's visibility. See http://code.google.com/p/js-hotkeys/ for more info.
 * start_hidden (default false) - Whether or not you want the mini_profiler to be visible when loading a page
+* backtrace_threshold_ms (default zero) - Minimum SQL query elapsed time before a backtrace is recorded. Backtrace recording can take a couple of milliseconds on rubies earlier than 2.0, impacting performance for very small queries.
 
 ## Special query strings 
 
-If you include the query string `pp=help` at the end of your request you will see the various option you have. You can use these options to extend or contract the amount of diagnostics rack-mini-profiler gathers. 
+If you include the query string `pp=help` at the end of your request you will see the various options available. You can use these options to extend or contract the amount of diagnostics rack-mini-profiler gathers. 
 

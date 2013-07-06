@@ -123,7 +123,7 @@ module Rack
 
         # Otherwise give the HTML back
         html = MiniProfiler.share_template.dup
-        html.gsub!(/\{path\}/, @config.base_url_path)
+        html.gsub!(/\{path\}/, "#{env['SCRIPT_NAME']}#{@config.base_url_path}")
         html.gsub!(/\{version\}/, MiniProfiler::VERSION)
         html.gsub!(/\{json\}/, result_json)
         html.gsub!(/\{includes\}/, get_profile_script(env))
@@ -239,7 +239,7 @@ module Rack
       done_sampling = false
       quit_sampler = false
       backtraces = nil
-      
+
       if query_string =~ /pp=sample/ || query_string =~ /pp=flamegraph/
         current.measure = false
         skip_frames = 0
@@ -255,7 +255,7 @@ module Rack
               break if done_sampling
               i -= 1
               backtraces << (has_backtrace_locations ? t.backtrace_locations : t.backtrace)
-              
+
               # On my machine using Ruby 2.0 this give me excellent fidelity of stack trace per 1.2ms
               #   with this fidelity analysis becomes very powerful
               sleep 0.0005
@@ -272,8 +272,8 @@ module Rack
 
         # Strip all the caching headers so we don't get 304s back
         #  This solves a very annoying bug where rack mini profiler never shows up
-        env['HTTP_IF_MODIFIED_SINCE'] = nil
-        env['HTTP_IF_NONE_MATCH'] = nil
+        env['HTTP_IF_MODIFIED_SINCE'] = ''
+        env['HTTP_IF_NONE_MATCH'] = ''
 
         status,headers,body = @app.call(env)
         client_settings.write!(headers)
@@ -316,7 +316,7 @@ module Rack
         body.close if body.respond_to? :close
         if query_string =~ /pp=sample/
           return analyze(backtraces, page_struct)
-        else 
+        else
           return flame_graph(backtraces, page_struct)
         end
       end
@@ -326,8 +326,9 @@ module Rack
       @storage.set_unviewed(page_struct['User'], page_struct['Id'])
       @storage.save(page_struct)
 
+      content_type = headers['Content-Type']
       # inject headers, script
-      if status == 200
+      if content_type && status == 200
 
         client_settings.write!(headers)
 
@@ -342,11 +343,7 @@ module Rack
           headers['X-MiniProfiler-Ids'] = ids_json(env)
         end
 
-        # inject script
-        if current.inject_js \
-          && headers.has_key?('Content-Type') \
-          && !headers['Content-Type'].match(/text\/html/).nil? then
-
+        if current.inject_js && content_type =~ /text\/html/
           response = Rack::Response.new([], status, headers)
           script = self.get_profile_script(env)
 
@@ -388,9 +385,9 @@ module Rack
       index = 1
       fragment.gsub(regex) do
         # though malformed there is an edge case where /body exists earlier in the html, work around
-        if index < matches 
+        if index < matches
           index += 1
-          close_tag        
+          close_tag
         else
 
           # if for whatever crazy reason we dont get a utf string,
@@ -451,7 +448,7 @@ module Rack
       data = graph.graph_data
 
       headers = {'Content-Type' => 'text/html'}
-      
+
       body = IO.read(::File.expand_path('../html/flamegraph.html', ::File.dirname(__FILE__)))
       body.gsub!("/*DATA*/", ::JSON.generate(data));
 
@@ -511,7 +508,7 @@ module Rack
     # * you do not want script to be automatically appended for the current page. You can also call cancel_auto_inject
     def get_profile_script(env)
       ids = ids_comma_separated(env)
-      path = @config.base_url_path
+      path = "#{env['SCRIPT_NAME']}#{@config.base_url_path}"
       version = MiniProfiler::VERSION
       position = @config.position
       showTrivial = false
