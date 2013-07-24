@@ -57,12 +57,7 @@ namespace StackExchange.Profiling
         /// </summary>
         public override int GetHashCode()
         {
-            int hashcode = ParentSqlTimingId.GetHashCode() ^ Name.GetHashCode();
-            
-            if (Value != null)
-                hashcode ^= Value.GetHashCode();
-
-            return hashcode;
+            return ParentSqlTimingId.GetHashCode() ^ Name.GetHashCode() ^ Value.GetHashCode();
         }
 
         /// <summary>
