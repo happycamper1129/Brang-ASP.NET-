@@ -1,28 +1,18 @@
 ﻿namespace StackExchange.Profiling
 {
     /// <summary>
-    /// Dictates on which side of the page the profiler popup button is displayed; defaults to top left.
+    /// Dictates on which side of the page the profiler popup button is displayed; defaults to left.
     /// </summary>
     public enum RenderPosition
     {
         /// <summary>
-        /// Profiler popup button is displayed on the top left.
+        /// Profiler popup button is displayed on the left.
         /// </summary>
         Left = 0,
 
         /// <summary>
-        /// Profiler popup button is displayed on the top right.
+        /// Profiler popup button is displayed on the right.
         /// </summary>
-        Right = 1,
-
-        /// <summary>
-        /// Profiler popup button is displayed on the bottom left.
-        /// </summary>
-        BottomLeft = 2,
-
-        /// <summary>
-        /// Profiler popup button is displayed on the bottom right.
-        /// </summary>
-        BottomRight = 3
+        Right = 1
     }
 }
