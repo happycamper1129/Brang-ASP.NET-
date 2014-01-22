@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-namespace StackExchange.Profiling.Data
+﻿namespace StackExchange.Profiling.Data
 {
     using System;
     using System.Collections.Generic;
@@ -35,7 +33,7 @@ namespace StackExchange.Profiling.Data
             /// <summary>
             /// The hash code.
             /// </summary>
-            private readonly int _hashCode;
+            private int _hashCode;
 
             /// <summary>
             /// Initialises a new instance of the <see cref="MetadataCacheKey"/> class. 
@@ -56,7 +54,7 @@ namespace StackExchange.Profiling.Data
 
                 _assemblies = assemblies;
                 _paths = paths;
-                _hashCode = CreateHashCode();
+                CreateHashCode();
             }
 
             /// <summary>
@@ -78,7 +76,7 @@ namespace StackExchange.Profiling.Data
                 _paths[0] = string.Format(Pattern, assemblyName, edmxName, "ssdl");
                 _paths[1] = string.Format(Pattern, assemblyName, edmxName, "msl");
                 _paths[2] = string.Format(Pattern, assemblyName, edmxName, "csdl");
-                _hashCode = CreateHashCode();
+                CreateHashCode();
             }
 
             /// <summary>
@@ -126,14 +124,14 @@ namespace StackExchange.Profiling.Data
                     return false;
                 if (_assemblies.Count() != cacheKey._assemblies.Count() || _paths.Count() != cacheKey._paths.Count())
                     return false;
-
-                for (int i = 0; i < _assemblies.Count(); i++)
+                int i = 0;
+                for (i = 0; i < _assemblies.Count(); i++)
                 {
                     if (_assemblies[i] != cacheKey._assemblies[i])
                         return false;
                 }
 
-                for (int i = 0; i < _paths.Count(); i++)
+                for (i = 0; i < _paths.Count(); i++)
                 {
                     if (_paths[i] != cacheKey._paths[i])
                         return false;
@@ -145,14 +143,13 @@ namespace StackExchange.Profiling.Data
             /// <summary>
             /// create the hash code.
             /// </summary>
-            private int CreateHashCode()
+            private void CreateHashCode()
             {
-                var hashCode = 19;
+                _hashCode = 19;
                 foreach (var assembly in _assemblies)
-                    hashCode = (3 * hashCode) ^ assembly.GetHashCode();
+                    _hashCode = (3 * _hashCode) ^ assembly.GetHashCode();
                 foreach (var path in _paths)
-                    hashCode = (3 * hashCode) ^ path.GetHashCode();
-                return hashCode;
+                    _hashCode = (3 * _hashCode) ^ path.GetHashCode();
             }
         }
 
@@ -324,14 +321,14 @@ namespace StackExchange.Profiling.Data
             /// <summary>
             /// The _workspaces.
             /// </summary>
-            private static readonly ConcurrentDictionary<MetadataCacheKey, MetadataWorkspace> Workspaces;
+            private static readonly Dictionary<MetadataCacheKey, MetadataWorkspace> Workspaces;
 
             /// <summary>
             /// Initialises static members of the <see cref="MetadataCache"/> class.
             /// </summary>
             static MetadataCache()
             {
-                Workspaces = new ConcurrentDictionary<MetadataCacheKey, MetadataWorkspace>();
+                Workspaces = new Dictionary<MetadataCacheKey, MetadataWorkspace>();
             }
 
             /// <summary>
@@ -341,12 +338,10 @@ namespace StackExchange.Profiling.Data
             /// <returns>the meta data workspace.</returns>
             public static MetadataWorkspace GetWorkspace(MetadataCacheKey key)
             {
-                return Workspaces.GetOrAdd(key, CreateWorkspace);
-            }
-
-            private static MetadataWorkspace CreateWorkspace(MetadataCacheKey key)
-            {
-                return new MetadataWorkspace(key.Paths, key.Assemblies);
+                if (Workspaces.ContainsKey(key))
+                    return Workspaces[key];
+                Workspaces[key] = new MetadataWorkspace(key.Paths, key.Assemblies);
+                return Workspaces[key];
             }
         }
     }
