@@ -25,8 +25,6 @@
         {
             DbConfiguration.Loaded += (_, a) => a.ReplaceService<DbProviderServices>(
                 (services, o) => WrapProviderService(services));
-
-            ExcludeEntityFrameworkAssemblies();
         }
 
         /// <summary>
@@ -64,14 +62,6 @@
             var instance = instanceProperty.GetValue(null) as DbProviderServices;
             ProviderCache[services] = instance;
             return instance;
-        }
-
-        private static void ExcludeEntityFrameworkAssemblies()
-        {
-            MiniProfiler.Settings.ExcludeAssembly("EntityFramework");
-            MiniProfiler.Settings.ExcludeAssembly("EntityFramework.SqlServer");
-            MiniProfiler.Settings.ExcludeAssembly("EntityFramework.SqlServerCompact");
-            MiniProfiler.Settings.ExcludeAssembly(typeof(MiniProfilerEF6).Assembly.GetName().Name);
         }
     }
 }
