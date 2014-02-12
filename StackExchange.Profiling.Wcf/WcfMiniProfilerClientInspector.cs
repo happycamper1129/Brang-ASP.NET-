@@ -59,11 +59,10 @@
                 {
                     _http = true;
 
+                    HttpRequestMessageProperty property = null;
                     if (!request.Properties.ContainsKey(HttpRequestMessageProperty.Name))
-                    {
                         request.Properties.Add(HttpRequestMessageProperty.Name, new HttpRequestMessageProperty());
-                    }
-                    HttpRequestMessageProperty property = (HttpRequestMessageProperty)request.Properties[HttpRequestMessageProperty.Name];
+                    property = (HttpRequestMessageProperty)request.Properties[HttpRequestMessageProperty.Name];
 
                     property.Headers.Add(MiniProfilerRequestHeader.HeaderName, header.ToHeaderText());
                 }

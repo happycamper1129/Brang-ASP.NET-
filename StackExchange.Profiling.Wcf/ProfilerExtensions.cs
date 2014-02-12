@@ -59,7 +59,7 @@ namespace StackExchange.Profiling.Wcf
             }
 
             Debug.Assert(timing.Children != null, "timing.Children != null");
-            if (timing.Children != null) timing.Children.ForEach(child => child.RemoveTrivialTimings());
+            timing.Children.ForEach(child => child.RemoveTrivialTimings());
         }
     }
 }
