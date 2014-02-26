@@ -238,6 +238,7 @@ namespace StackExchange.Profiling.MongoDB
             if (timing != null)
             {
                 timing.Children = LoadChildrenTimings(timing.Id);
+
                 timing.CustomTimings = LoadCustomTimings(timing.Id);
             }
 
@@ -256,7 +257,6 @@ namespace StackExchange.Profiling.MongoDB
             childrenTimings.ForEach(timing =>
             {
                 timing.Children = LoadChildrenTimings(timing.Id);
-                timing.CustomTimings = LoadCustomTimings(timing.Id);
             });
 
             return childrenTimings;
