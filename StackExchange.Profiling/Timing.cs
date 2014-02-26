@@ -18,9 +18,6 @@ namespace StackExchange.Profiling
         /// </summary>
         private readonly long _startTicks;
 
-        private readonly decimal? _minSaveMs;
-        private readonly bool _includeChildrenWithMinSave;
-
         /// <summary>
         /// Initialises a new instance of the <see cref="Timing"/> class. 
         /// Obsolete - used for serialization.
@@ -33,7 +30,7 @@ namespace StackExchange.Profiling
         /// <summary>
         /// Creates a new Timing named 'name' in the 'profiler's session, with 'parent' as this Timing's immediate ancestor.
         /// </summary>
-        public Timing(MiniProfiler profiler, Timing parent, string name, decimal? minSaveMs = null, bool? includeChildrenWithMinSave = false)
+        public Timing(MiniProfiler profiler, Timing parent, string name)
         {
             Id = Guid.NewGuid();
             Profiler = profiler;
@@ -48,8 +45,6 @@ namespace StackExchange.Profiling
             Name = name;
 
             _startTicks = profiler.ElapsedTicks;
-            _minSaveMs = minSaveMs;
-            _includeChildrenWithMinSave = includeChildrenWithMinSave == true;
             StartMilliseconds = profiler.GetRoundedMilliseconds(_startTicks);
         }
 
@@ -231,17 +226,10 @@ namespace StackExchange.Profiling
         /// </summary>
         public void Stop()
         {
-            if (DurationMilliseconds != null) return;
-            DurationMilliseconds = Profiler.GetDurationMilliseconds(_startTicks);
-            Profiler.Head = ParentTiming;
-
-            if (_minSaveMs.HasValue && _minSaveMs.Value > 0 && ParentTiming != null)
+            if (DurationMilliseconds == null)
             {
-                var compareMs = _includeChildrenWithMinSave ? DurationMilliseconds : DurationWithoutChildrenMilliseconds;
-                if (compareMs < _minSaveMs.Value)
-                {
-                    ParentTiming.RemoveChild(this);
-                }
+                DurationMilliseconds = Profiler.GetDurationMilliseconds(_startTicks);
+                Profiler.Head = ParentTiming;
             }
         }
 
@@ -270,14 +258,6 @@ namespace StackExchange.Profiling
             timing.MiniProfilerId = Profiler.Id;
         }
 
-        internal void RemoveChild(Timing timing)
-        {
-            if (Children != null)
-            {
-                Children.Remove(timing);
-            }
-        }
-
         /// <summary>
         /// Adds <paramref name="customTiming"/> to this <see cref="Timing"/> step's dictionary of 
         /// custom timings, <see cref="CustomTimings"/>.  Ensures that <see cref="CustomTimings"/> is created, 
@@ -288,11 +268,6 @@ namespace StackExchange.Profiling
         public void AddCustomTiming(string category, CustomTiming customTiming)
         {
             GetCustomTimingList(category).Add(customTiming);
-        }
-
-        internal void RemoveCustomTiming(string category, CustomTiming customTiming)
-        {
-            GetCustomTimingList(category).Remove(customTiming);
         }
 
         /// <summary>

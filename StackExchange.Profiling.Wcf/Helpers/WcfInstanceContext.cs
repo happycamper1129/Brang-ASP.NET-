@@ -33,7 +33,7 @@
             get
             {
                 var wcfContext = OperationContext.Current;
-                if (wcfContext == null || wcfContext.InstanceContext == null)
+                if (wcfContext == null)
                     return null;
 
                 var context = wcfContext.InstanceContext.Extensions.Find<WcfInstanceContext>();
@@ -68,7 +68,7 @@
         public static WcfInstanceContext GetCurrentWithoutInstantiating()
         {
             var wcfContext = OperationContext.Current;
-            if (wcfContext == null || wcfContext.InstanceContext == null)
+            if (wcfContext == null)
                 return null;
 
             return wcfContext.InstanceContext.Extensions.Find<WcfInstanceContext>();
