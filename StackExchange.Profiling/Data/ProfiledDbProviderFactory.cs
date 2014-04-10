@@ -9,6 +9,7 @@ namespace StackExchange.Profiling.Data
     /// </summary>
     public class ProfiledDbProviderFactory : DbProviderFactory
     {
+
         /// <summary>
         /// Every provider factory must have an Instance public field
         /// </summary>
@@ -16,26 +17,44 @@ namespace StackExchange.Profiling.Data
         public static ProfiledDbProviderFactory Instance = new ProfiledDbProviderFactory();
 
         /// <summary>
+        /// The profiler.
+        /// </summary>
+        private IDbProfiler _profiler;
+
+        /// <summary>
         /// The tail.
         /// </summary>
         private DbProviderFactory _tail;
 
         /// <summary>
-        /// Initialises a new instance of the <see cref="ProfiledDbProviderFactory"/> class.
-        /// proxy provider factory
+        /// Prevents a default instance of the <see cref="ProfiledDbProviderFactory"/> class from being created. 
+        /// Used for database provider APIS internally 
         /// </summary>
-        /// <param name="tail">The tail.</param>
-        public ProfiledDbProviderFactory(DbProviderFactory tail)
+        private ProfiledDbProviderFactory()
         {
+        }
+
+        /// <summary>
+        /// Allow to re-initialise the provider factory.
+        /// </summary>
+        /// <param name="profiler">The profiler.</param>
+        /// <param name="tail">The tail.</param>
+        public void InitProfiledDbProviderFactory(IDbProfiler profiler, DbProviderFactory tail)
+        {
+            _profiler = profiler;
             _tail = tail;
         }
 
         /// <summary>
-        /// Prevents a default instance of the <see cref="ProfiledDbProviderFactory"/> class from being created.
-        /// Used for database provider APIS internally
+        /// Initialises a new instance of the <see cref="ProfiledDbProviderFactory"/> class. 
+        /// proxy provider factory
         /// </summary>
-        private ProfiledDbProviderFactory()
+        /// <param name="profiler">The profiler.</param>
+        /// <param name="tail">The tail.</param>
+        public ProfiledDbProviderFactory(IDbProfiler profiler, DbProviderFactory tail)
         {
+            _profiler = profiler;
+            _tail = tail;
         }
 
         /// <summary>
@@ -50,29 +69,21 @@ namespace StackExchange.Profiling.Data
         }
 
         /// <summary>
+        /// create the data source enumerator.
+        /// </summary>
+        /// <returns>The <see cref="DbDataSourceEnumerator"/>.</returns>
+        public override DbDataSourceEnumerator CreateDataSourceEnumerator()
+        {
+            return _tail.CreateDataSourceEnumerator();
+        }
+
+        /// <summary>
         /// create the command.
         /// </summary>
         /// <returns>The <see cref="DbCommand"/>.</returns>
         public override DbCommand CreateCommand()
         {
-            var profiler = MiniProfiler.Current;
-
-            var command = _tail.CreateCommand();
-
-            return profiler != null
-                ? new ProfiledDbCommand(command, null, MiniProfiler.Current)
-                : command;
-        }
-
-        /// <summary>
-        /// create the command builder.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="DbCommandBuilder"/>.
-        /// </returns>
-        public override DbCommandBuilder CreateCommandBuilder()
-        {
-            return _tail.CreateCommandBuilder();
+            return new ProfiledDbCommand(_tail.CreateCommand(), null, _profiler);
         }
 
         /// <summary>
@@ -81,13 +92,16 @@ namespace StackExchange.Profiling.Data
         /// <returns>The <see cref="DbConnection"/>.</returns>
         public override DbConnection CreateConnection()
         {
-            var profiler = MiniProfiler.Current;
+            return new ProfiledDbConnection(_tail.CreateConnection(), _profiler);
+        }
 
-            var connection = _tail.CreateConnection();
-
-            return profiler != null
-                ? new ProfiledDbConnection(connection, MiniProfiler.Current)
-                : connection;
+        /// <summary>
+        /// create the parameter.
+        /// </summary>
+        /// <returns>The <see cref="DbParameter"/>.</returns>
+        public override DbParameter CreateParameter()
+        {
+            return _tail.CreateParameter();
         }
 
         /// <summary>
@@ -102,6 +116,17 @@ namespace StackExchange.Profiling.Data
         }
 
         /// <summary>
+        /// create the command builder.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="DbCommandBuilder"/>.
+        /// </returns>
+        public override DbCommandBuilder CreateCommandBuilder()
+        {
+            return _tail.CreateCommandBuilder();
+        }
+
+        /// <summary>
         /// create the data adapter.
         /// </summary>
         /// <returns>
@@ -109,31 +134,7 @@ namespace StackExchange.Profiling.Data
         /// </returns>
         public override DbDataAdapter CreateDataAdapter()
         {
-            var profiler = MiniProfiler.Current;
-
-            var dataAdapter = _tail.CreateDataAdapter();
-
-            return profiler != null
-                ? new ProfiledDbDataAdapter(dataAdapter, MiniProfiler.Current)
-                : dataAdapter;
-        }
-
-        /// <summary>
-        /// create the data source enumerator.
-        /// </summary>
-        /// <returns>The <see cref="DbDataSourceEnumerator"/>.</returns>
-        public override DbDataSourceEnumerator CreateDataSourceEnumerator()
-        {
-            return _tail.CreateDataSourceEnumerator();
-        }
-
-        /// <summary>
-        /// create the parameter.
-        /// </summary>
-        /// <returns>The <see cref="DbParameter"/>.</returns>
-        public override DbParameter CreateParameter()
-        {
-            return _tail.CreateParameter();
+            return new ProfiledDbDataAdapter(_tail.CreateDataAdapter(), _profiler);
         }
 
         /// <summary>
@@ -146,13 +147,5 @@ namespace StackExchange.Profiling.Data
             return _tail.CreatePermission(state);
         }
 
-        /// <summary>
-        /// Allow to re-initialise the provider factory.
-        /// </summary>
-        /// <param name="tail">The tail.</param>
-        public void InitProfiledDbProviderFactory(DbProviderFactory tail)
-        {
-            _tail = tail;
-        }
     }
 }

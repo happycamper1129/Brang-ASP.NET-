@@ -18,5 +18,3 @@ tmp
 *.GhostDoc.xml
 *.ncrunchproject
 nupkg
-Sample.Wcf/x64/
-Sample.Wcf/x86/
