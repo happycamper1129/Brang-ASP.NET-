@@ -99,7 +99,6 @@ namespace StackExchange.Profiling.Data
         {
             var cmdDef = _tail.CreateCommandDefinition(providerManifest, commandTree);
             var cmd = cmdDef.CreateCommand();
-            Debug.Assert(cmd != null, "cmd != null");
             return CreateCommandDefinition(new ProfiledDbCommand(cmd, cmd.Connection, MiniProfiler.Current));
         }
 
@@ -186,11 +185,8 @@ namespace StackExchange.Profiling.Data
 
         protected override DbSpatialDataReader GetDbSpatialDataReader(DbDataReader fromReader, string manifestToken)
         {
-            var setDbParameterValueMethod =
-            _tail.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(f => f.Name.Equals("GetDbSpatialDataReader"));
-
+            var setDbParameterValueMethod = _tail.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(f => f.Name.Equals("GetDbSpatialDataReader"));
             var reader = GetSpatialDataReader(fromReader);
-
 
             if (setDbParameterValueMethod == null)
             {
@@ -201,16 +197,13 @@ namespace StackExchange.Profiling.Data
             return result as DbSpatialDataReader;
         }
 
+        [Obsolete("Return DbSpatialServices from the GetService method. See http://go.microsoft.com/fwlink/?LinkId=260882 for more information.")]
         protected override DbSpatialServices DbGetSpatialServices(string manifestToken)
         {
-            var dbGetSpatialServices =
-            _tail.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(f => f.Name.Equals("DbGetSpatialServices"));
-
-            return dbGetSpatialServices.Invoke(_tail, new[] { manifestToken }) as DbSpatialServices;
+            var dbGetSpatialServices = _tail.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(f => f.Name.Equals("DbGetSpatialServices"));
+            if (dbGetSpatialServices != null) return dbGetSpatialServices.Invoke(_tail, new[] { manifestToken }) as DbSpatialServices;
+            return null;
         }
-
-        
-
 
         protected override void SetDbParameterValue(DbParameter parameter, TypeUsage parameterType, object value)
         {
@@ -222,15 +215,13 @@ namespace StackExchange.Profiling.Data
                 return;
             }
 
-            // this should never need to be called, but just in case get the Provider Value
+            // this should never need to be called, but just in case, get the Provider Value
             if (value is DbGeography)
             {
                 value = ((DbGeography)value).ProviderValue;
             }
-            
             base.SetDbParameterValue(parameter, parameterType, value);
         }
-
         
     }
 }
