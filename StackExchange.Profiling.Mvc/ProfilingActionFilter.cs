@@ -16,7 +16,7 @@ namespace StackExchange.Profiling.Mvc
         /// <summary>
         /// Happens before the action starts running
         /// </summary>
-        public override void OnActionExecuting(ActionExecutingContext filterContext)
+        public override void OnActionExecuting(ActionExecutingContext ctx)
         {
             var mp = MiniProfiler.Current;
             if (mp != null)
@@ -28,16 +28,16 @@ namespace StackExchange.Profiling.Mvc
                     HttpContext.Current.Items[StackKey] = stack;
                 }
 
-                var tokens = filterContext.RouteData.DataTokens;
+                var tokens = ctx.RouteData.DataTokens;
                 string area = tokens.ContainsKey("area") && !string.IsNullOrWhiteSpace(((string)tokens["area"]))
                     ? tokens["area"] + "."
                     : "";
-                string controller = filterContext.Controller.ToString().Split('.').Last() + ".";
-                string action = filterContext.ActionDescriptor.ActionName;
+                string controller = ctx.Controller.ToString().Split('.').Last() + ".";
+                string action = ctx.ActionDescriptor.ActionName;
 
                 stack.Push(mp.Step("Controller: " + area + controller + action));
             }
-            base.OnActionExecuting(filterContext);
+            base.OnActionExecuting(ctx);
         }
 
         /// <summary>
