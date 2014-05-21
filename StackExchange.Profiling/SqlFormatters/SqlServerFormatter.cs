@@ -61,114 +61,36 @@ namespace StackExchange.Profiling.SqlFormatters
         /// </summary>
         public virtual string FormatSql(string commandText, List<SqlTimingParameter> parameters, IDbCommand command = null)
         {
+            if (parameters == null || parameters.Count == 0)
+            {
+                return commandText;
+            }
+
             StringBuilder buffer = new StringBuilder();
-            
-            if (parameters != null && parameters.Any())
-            {
-                GenerateParamText(buffer, parameters);
-                // finish the parameter declaration
-                buffer.Append(";")
-                    .AppendLine()
-                    .AppendLine();
-            }
+            GenerateParamText(buffer, parameters);
 
-            // only treat 'StoredProcedure' differently since 'Text' may contain 'TableDirect' and 'StoredProcedure'
-            if (command != null && command.CommandType == CommandType.StoredProcedure)
-            {
-                GenerateStoreProcedureCall(commandText, parameters, buffer);
-            }
-            else
-            {
-                buffer.Append(commandText);
-            }
-
-            string formattedText = TerminateSqlStatement(buffer.ToString());
-            return formattedText;
-        }
-
-        private void GenerateStoreProcedureCall(string commandText, List<SqlTimingParameter> parameters, StringBuilder buffer)
-        {
-            buffer.Append("EXEC ");
-
-            SqlTimingParameter returnValueParameter = GetReturnValueParameter(parameters);
-            if (returnValueParameter != null)
-            {
-                buffer.Append("@").Append(returnValueParameter.Name).Append(" = ");
-            }
-
-            buffer.Append(commandText);
-
-            GenerateStoredProcedureParameters(buffer, parameters);
-            buffer.Append(";");
-
-            if (returnValueParameter != null)
-            {
-                buffer.AppendLine().Append("SELECT @").Append(returnValueParameter.Name).Append(" AS ReturnValue;");
-            }
-        }
-
-        private static SqlTimingParameter GetReturnValueParameter(List<SqlTimingParameter> parameters)
-        {
-            if (parameters == null || !parameters.Any()) return null;
-            return parameters.FirstOrDefault(x => x.Direction == ParameterDirection.ReturnValue.ToString());
-        }
-
-        /// <summary>
-        /// This function is necessary to always return the sql statement terminated with a semicolon.
-        /// Since we're using semicolons, we should also add it to the end.
-        /// </summary>
-        private string TerminateSqlStatement(string sqlStatement)
-        {
-            if (sqlStatement[sqlStatement.Length - 1] != ';')
-            {
-                return sqlStatement + ";";
-            }
-            return sqlStatement;
-        }
-
-        private void GenerateStoredProcedureParameters(StringBuilder buffer, List<SqlTimingParameter> parameters)
-        {
-            if (parameters == null || !parameters.Any()) return;
-
-            bool firstParameter = true;
-            foreach (var parameter in parameters)
-            {
-                if (parameter.Direction == ParameterDirection.ReturnValue.ToString())
-                {
-                    continue;
-                }
-                
-                if (!firstParameter)
-                {
-                    buffer.Append(",");
-                }
-
-                firstParameter = false;
-                buffer.Append(" @").Append(parameter.Name).Append(" = ").Append("@").Append(parameter.Name);
-
-                // Output and InputOutput directions treated equally on the database side.
-                if (parameter.Direction == ParameterDirection.Output.ToString() ||
-                    parameter.Direction == ParameterDirection.InputOutput.ToString())
-                {
-                    buffer.Append(" OUTPUT");
-                }
-            }
+            return buffer
+                .Append(";")
+                .AppendLine()
+                .AppendLine()
+                .Append(commandText)
+                .ToString();
         }
 
         /// <summary>
         /// Generate formatter output text for all <paramref name="parameters"/>.
         /// </summary>
-        /// <param name="buffer"><see cref="StringBuilder"/> to use</param>
+        /// <param name="str"><see cref="StringBuilder"/> to use</param>
         /// <param name="parameters">Parameters to evaluate</param>
         /// <returns></returns>
-        protected void GenerateParamText(StringBuilder buffer, List<SqlTimingParameter> parameters)
+        protected void GenerateParamText(StringBuilder str, List<SqlTimingParameter> parameters)
         {
             if (parameters != null && parameters.Count > 0)
             {
-                buffer.Append("DECLARE ");
+                str.Append("DECLARE ");
                 var first = true;
 
-                foreach (var parameter in parameters)
+                foreach (var p in parameters)
                 {
                     if (first)
                     {
@@ -176,14 +98,14 @@ namespace StackExchange.Profiling.SqlFormatters
                     }
                     else
                     {
-                        buffer.AppendLine(",").Append(new string(' ', 8));
+                        str.AppendLine(",").Append(new string(' ', 8));
                     }
 
                     DbType parsed;
                     string resolvedType = null;
-                    if (!Enum.TryParse(parameter.DbType, out parsed))
+                    if (!Enum.TryParse(p.DbType, out parsed))
                     {
-                        resolvedType = parameter.DbType;
+                        resolvedType = p.DbType;
                     }
 
                     if (resolvedType == null)
@@ -191,24 +113,18 @@ namespace StackExchange.Profiling.SqlFormatters
                         Func<SqlTimingParameter, string> translator;
                         if (ParamTranslator.TryGetValue(parsed, out translator))
                         {
-                            resolvedType = translator(parameter);
+                            resolvedType = translator(p);
                         }
-                        resolvedType = resolvedType ?? parameter.DbType;
+                        resolvedType = resolvedType ?? p.DbType;
                     }
 
-                    var niceName = parameter.Name;
+                    var niceName = p.Name;
                     if (!niceName.StartsWith("@"))
                     {
                         niceName = "@" + niceName;
                     }
 
-                    buffer.Append(niceName).Append(" ").Append(resolvedType);
-
-                    // return values don't have a value assignment
-                    if (parameter.Direction != ParameterDirection.ReturnValue.ToString())
-                    {
-                        buffer.Append(" = ").Append(PrepareValue(parameter));
-                    }
+                    str.Append(niceName).Append(" ").Append(resolvedType).Append(" = ").Append(PrepareValue(p));
                 }
             }
         }

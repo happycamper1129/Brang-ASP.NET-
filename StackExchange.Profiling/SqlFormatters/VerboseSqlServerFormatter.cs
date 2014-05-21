@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
@@ -27,11 +28,17 @@ namespace StackExchange.Profiling.SqlFormatters
                 buffer.AppendLine();
             }
 
-	        string baseOutput = base.FormatSql(commandText, parameters, command);
+            GenerateParamText(buffer, parameters);
 
-	        buffer.Append(baseOutput);
+            if (parameters != null && parameters.Count > 0)
+            {
+                buffer.AppendLine(";");
+            }
 
-	        return buffer.ToString();
+            return buffer
+                .AppendLine()
+                .Append(commandText)
+                .ToString();
         }
     }
 }

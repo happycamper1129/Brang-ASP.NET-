@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlTypes;
+using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using StackExchange.Profiling.Data;
 using StackExchange.Profiling.Helpers;
 
@@ -176,9 +178,7 @@ namespace StackExchange.Profiling
                         Name = parameter.ParameterName.Trim(),
                         Value = GetValue(parameter),
                         DbType = parameter.DbType.ToString(),
-                        Size = GetParameterSize(parameter),
-                        Direction = parameter.Direction.ToString(),
-                        IsNullable = parameter.IsNullable
+                        Size = GetParameterSize(parameter)
                     });
                 }
             }
