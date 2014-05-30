@@ -5,40 +5,11 @@ using System.Diagnostics;
 
 namespace StackExchange.Profiling.MongoDB
 {
-    public class ProfiledEnumerable<TDocument> : IEnumerable<TDocument>
-    {
-        private readonly IEnumerable<TDocument> _underlyingEnumerable;
-        private IEnumerator<TDocument> _profiledEnumerator;
-
-        public ProfiledEnumerable(IEnumerable<TDocument> underlyingEnumerable)
-        {
-            _underlyingEnumerable = underlyingEnumerable;
-        }
-
-        public IEnumerator<TDocument> GetEnumerator()
-        {
-            lock (this)
-            {
-                if (_profiledEnumerator == null)
-                {
-                    _profiledEnumerator = new ProfiledEnumerator<TDocument>(_underlyingEnumerable.GetEnumerator());
-                }
-            }
-
-            return _profiledEnumerator;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-    }
-
     public class ProfiledEnumerator<TDocument> : IEnumerator<TDocument>
     {
         public class EnumerationEndedEventArgs : EventArgs
         {
-            public TimeSpan Elapsed { get; set; }
+            public long ElapsedMilliseconds { get; set; }
         }
 
         private readonly Stopwatch _sw;
@@ -90,7 +61,7 @@ namespace StackExchange.Profiling.MongoDB
             {
                 _sw.Stop();
 
-                OnEnumerationEnded(new EnumerationEndedEventArgs {Elapsed = _sw.Elapsed});
+                OnEnumerationEnded(new EnumerationEndedEventArgs {ElapsedMilliseconds = _sw.ElapsedMilliseconds});
             }
 
             return result;

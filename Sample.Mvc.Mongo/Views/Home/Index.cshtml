@@ -1,6 +1,5 @@
 ﻿@using StackExchange.Profiling
 @using SampleWeb.Models
-@using StackExchange.Profiling.Helpers
 @model MongoDemoModel
 @{
     var profiler = MiniProfiler.Current;
@@ -48,7 +47,7 @@
                 Aggregation result document
             </td>
             <td>
-                <pre>@Model.AggregateResult</pre>
+                <pre>@Model.AggregateResult.Substring(0, 100)...</pre>
             </td>
         </tr>
         <tr>
@@ -56,7 +55,7 @@
                 Some query explained
             </td>
             <td>
-                <pre>@Model.ExplainResult.Truncate(100)...</pre>
+                <pre>@Model.ExplainResult.Substring(0, 100)...</pre>
             </td>
         </tr>
         <tr>
