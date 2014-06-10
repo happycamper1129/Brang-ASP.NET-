@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Transactions;
 using NUnit.Framework;
 using StackExchange.Profiling.SqlFormatters;
+using IsolationLevel = System.Data.IsolationLevel;
 
 namespace StackExchange.Profiling.Tests
 {
@@ -39,7 +41,10 @@ namespace StackExchange.Profiling.Tests
         private string GenerateOutput()
         {
             var sqlParameters = SqlTiming.GetCommandParameters(_dbCommand);
-            return _formatter.GetFormattedSql(_commandText, sqlParameters, _dbCommand);
+
+            var advancedFormatter = _formatter as IAdvancedSqlFormatter;
+            var output = advancedFormatter != null ? advancedFormatter.FormatSql(_commandText, sqlParameters, _dbCommand) : _formatter.FormatSql(_commandText, sqlParameters);
+            return output;
         }
 
         private void AddDbParameter<T>(string name, object value, ParameterDirection parameterDirection = ParameterDirection.Input)
@@ -110,6 +115,28 @@ namespace StackExchange.Profiling.Tests
 
             // act
             var actualOutput = GenerateOutput();
+
+            // assert
+            Assert.AreEqual(expectedOutput, actualOutput);
+        }
+
+        [Test]
+        public void VerboseSqlServerFormatterAddsTransactionInformation()
+        {
+			// note: since we don't have an active sql connection we cannot test the transactions coupled to a connection
+			// the only thing we can do is test the TransactionScope transaction
+
+            // arrange
+			// overwrite the formatter
+	        _formatter = new VerboseSqlServerFormatter(true);
+            _commandText = "select 1";
+            const string expectedOutput = "-- Command Type: Text\r\n-- Database: TestDatabase\r\n-- Transaction Iso Level: Serializable\r\n\r\nselect 1;";
+            CreateDbCommand(CommandType.Text);
+	        TransactionScope transactionScope = new TransactionScope();
+
+            // act
+            var actualOutput = GenerateOutput();
+	        transactionScope.Dispose();
 
             // assert
             Assert.AreEqual(expectedOutput, actualOutput);
