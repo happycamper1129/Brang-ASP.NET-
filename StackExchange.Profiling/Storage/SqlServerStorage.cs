@@ -19,7 +19,7 @@
         /// <summary>
         /// Load the SQL statements (using Dapper Multiple Results)
         /// </summary>
-        protected string SqlStatements = @"
+        private const string SqlStatements = @"
 SELECT * FROM MiniProfilers WHERE Id = @id;
 SELECT * FROM MiniProfilerTimings WHERE MiniProfilerId = @id ORDER BY StartMilliseconds;
 SELECT * FROM MiniProfilerClientTimings WHERE MiniProfilerId = @id ORDER BY Start;";
