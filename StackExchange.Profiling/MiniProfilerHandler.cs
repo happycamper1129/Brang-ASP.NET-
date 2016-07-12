@@ -260,12 +260,6 @@ namespace StackExchange.Profiling
                 g =>
                 {
                     var profiler = MiniProfiler.Settings.Storage.Load(g);
-                    
-                    if (profiler == null)
-                    {
-                        return null;
-                    }
-                    
                     return new
                     {
                         profiler.Id,
@@ -277,7 +271,7 @@ namespace StackExchange.Profiling
                         profiler.User,
                         profiler.DurationMilliseconds
                     };
-                }).Where(x => x != null).ToJson();
+                }).ToJson();
         }
 
         /// <summary>
