@@ -11,6 +11,7 @@ namespace StackExchange.Profiling.Mvc
     public class ProfilingActionFilter : ActionFilterAttribute
     {
         private const string StackKey = "ProfilingActionFilterStack";
+        private static readonly char[] dotSplit = new[] { '.' };
 
         /// <summary>
         /// Happens before the action starts running
