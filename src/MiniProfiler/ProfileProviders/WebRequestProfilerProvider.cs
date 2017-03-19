@@ -45,7 +45,7 @@ namespace StackExchange.Profiling
                 }
             }
 
-            if (context.Request.Path.StartsWith(VirtualPathUtility.ToAbsolute(MiniProfiler.Settings.RouteBasePath), StringComparison.OrdinalIgnoreCase))
+            if (context.Request.Path.StartsWith(VirtualPathUtility.ToAbsolute(MiniProfiler.Settings.RouteBasePath), StringComparison.InvariantCultureIgnoreCase))
             {
                 return null;
             }
