@@ -74,9 +74,6 @@ namespace Samples.AspNetCore
 
                 // Optionally disable "Connection Open()", "Connection Close()" (and async variants).
                 //options.TrackConnectionOpenClose = false;
-                
-                // Optionally listen to any errors that occur within MiniProfiler itself
-                //options.OnInternalError = e => MyExceptionLogger(e);
             }).AddEntityFramework();
 
             services.AddLogging(builder =>

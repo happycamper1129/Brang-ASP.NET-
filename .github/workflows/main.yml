@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-    - main
+    - master
     paths:
     - '*'
     - '!/docs/*' # Don't run workflow when files are only in the /docs directory

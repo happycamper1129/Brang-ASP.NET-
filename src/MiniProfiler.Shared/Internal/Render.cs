@@ -56,6 +56,7 @@ namespace StackExchange.Profiling.Internal
 
             sb.Append("\" data-position=\"");
             sb.Append((renderOptions?.Position ?? options.PopupRenderPosition).ToString());
+            sb.Append('"');
 
             sb.Append("\" data-scheme=\"");
             sb.Append((renderOptions?.ColorScheme ?? options.ColorScheme).ToString());

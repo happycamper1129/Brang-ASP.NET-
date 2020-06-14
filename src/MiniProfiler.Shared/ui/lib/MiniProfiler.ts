@@ -315,15 +315,8 @@ namespace StackExchange.Profiling {
 
                         // fetch and render results
                         mp.fetchResults(mp.options.ids);
-                        
-                        let lsDisplayValue;
-                        try {
-                            lsDisplayValue = window.localStorage.getItem('MiniProfiler-Display');
-                        } catch(e) { }
 
-                        if (lsDisplayValue) {
-                            mp.container.style.display = lsDisplayValue;
-                        } else if (mp.options.startHidden) {
+                        if (mp.options.startHidden) {
                             mp.container.style.display = 'none';
                         }
 
@@ -1213,11 +1206,7 @@ namespace StackExchange.Profiling {
                             && e.shiftKey == modifiers.shift.wanted
                             && e.altKey == modifiers.alt.wanted) {
                             const results = document.querySelector<HTMLElement>('.mp-results');
-                            const newValue = results.style.display == 'none' ? 'block' : 'none';
-                            results.style.display = newValue;
-                            try {
-                                window.localStorage.setItem('MiniProfiler-Display', newValue);
-                            } catch(e) { }
+                            results.style.display = results.style.display == 'none' ? 'block' : 'none';
                         }
                     }, false);
                 }
