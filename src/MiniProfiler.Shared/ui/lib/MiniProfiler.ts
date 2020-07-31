@@ -315,8 +315,15 @@ namespace StackExchange.Profiling {
 
                         // fetch and render results
                         mp.fetchResults(mp.options.ids);
+                        
+                        let lsDisplayValue;
+                        try {
+                            lsDisplayValue = window.localStorage.getItem('MiniProfiler-Display');
+                        } catch(e) { }
 
-                        if (mp.options.startHidden) {
+                        if (lsDisplayValue) {
+                            mp.container.style.display = lsDisplayValue;
+                        } else if (mp.options.startHidden) {
                             mp.container.style.display = 'none';
                         }
 
@@ -512,7 +519,7 @@ namespace StackExchange.Profiling {
                     timing.HasCustomTimings = true;
                     result.HasCustomTimings = true;
                     for (const customType of Object.keys(timing.CustomTimings)) {
-                        const customTimings = timing.CustomTimings[customType];
+                        const customTimings = timing.CustomTimings[customType] || [] as ICustomTiming[];
                         const customStat = {
                             Duration: 0,
                             Count: 0,
@@ -1206,7 +1213,11 @@ namespace StackExchange.Profiling {
                             && e.shiftKey == modifiers.shift.wanted
                             && e.altKey == modifiers.alt.wanted) {
                             const results = document.querySelector<HTMLElement>('.mp-results');
-                            results.style.display = results.style.display == 'none' ? 'block' : 'none';
+                            const newValue = results.style.display == 'none' ? 'block' : 'none';
+                            results.style.display = newValue;
+                            try {
+                                window.localStorage.setItem('MiniProfiler-Display', newValue);
+                            } catch(e) { }
                         }
                     }, false);
                 }
