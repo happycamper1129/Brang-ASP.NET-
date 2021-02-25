@@ -148,14 +148,7 @@ namespace StackExchange.Profiling
                 var routeData = context.GetRouteData();
                 if (routeData?.Values["controller"] != null)
                 {
-                    if (routeData.Values.TryGetValue("area", out object area))
-                    {
-                        profiler.Name = area + "/" + routeData.Values["controller"] + "/" + routeData.Values["action"];
-                    }
-                    else
-                    {
-                        profiler.Name = routeData.Values["controller"] + "/" + routeData.Values["action"];
-                    }
+                    profiler.Name = routeData.Values["controller"] + "/" + routeData.Values["action"];
                 }
                 else if (routeData?.Values["page"] != null)
                 {
@@ -165,9 +158,9 @@ namespace StackExchange.Profiling
                 else if (context.GetEndpoint() is Endpoint endPoint && endPoint.DisplayName.HasValue())
                 {
                     profiler.Name = endPoint.DisplayName;
-                }
+                }    
 #endif
-                else
+               else
                 {
                     profiler.Name = url;
                     if (profiler.Name.Length > 50)
