@@ -7,12 +7,15 @@ namespace Benchmarks
     {
         public class Full : ManualConfig
         {
-            public Full() => AddDiagnoser(MemoryDiagnoser.Default);
+            public Full()
+            {
+                Add(new MemoryDiagnoser());
+            }
         }
 
         public class Memory : ManualConfig
         {
-            public Memory() => AddDiagnoser(MemoryDiagnoser.Default);
+            public Memory() => Add(new MemoryDiagnoser());
         }
     }
 }
